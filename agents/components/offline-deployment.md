@@ -5,6 +5,23 @@ resource-constrained consumer hardware, at acceptable latency and accuracy?
 Also underlies contribution 4 (scoping cloud GPU to one-time adapter
 training only).
 
+## Implementation status
+
+Measured for real on the actual target hardware class —
+`implementation/scripts/benchmark_latency.py`, run on an NVIDIA RTX 3050
+Laptop (6GB VRAM). Retrieval, dialect mapping, and the confidence gate are
+all sub-10ms; the dominant cost is local LLM generation
+(Qwen2.5-0.5B-Instruct, fp16) at ~1.2s mean for a capped 120-token response.
+Peak VRAM with every model loaded simultaneously (dense retriever, Whisper
+tiny, wav2vec2+adapter, the LLM) is ~1.48GB — comfortably inside the 6GB
+budget, on this demo-scale 42-passage KB. **Not yet done**: quantization of
+the LLM (it runs fp16, not INT4/INT8), so this prototype has not yet tested
+whether the `compactllm2026` throughput figures cited below actually hold
+once quantization is combined with the rest of this stack — that comparison
+remains open. Network access was used only for one-time model-weight
+downloads; every benchmarked run itself is offline. See
+`implementation/README.md` §4 for full stage-by-stage numbers.
+
 ## What it is
 
 Running the entire inference-time pipeline — speech encoder, dialect

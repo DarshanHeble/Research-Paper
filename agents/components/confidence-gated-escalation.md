@@ -4,6 +4,26 @@ Supports contribution 3 (confidence-gated architecture) and underlies the
 safety framing used throughout the paper (incorrect agricultural advice can
 damage a season's crop).
 
+## Implementation status
+
+Implemented at `implementation/src/confidence/{gate,validate_gate}.py`,
+combining a closed-book signal (retrieval score margin) and an open-book
+signal (lexical grounding overlap between the answer and its source
+passage), and validated against 50 labeled examples exactly per the
+Section IV-E protocol this doc calls for. Real result: the gate clears the
+minimal bar (87.5% accuracy on the ~32% of queries it chooses to answer, vs.
+78.0% unconditional accuracy, catching 81.8% of actually-wrong answers via
+escalation) — but validation also **surfaced a real instance of the
+INTRYGUE warning below**: the open-book signal barely varies across examples
+in this run (because the templated answers quote their own top-1 passage
+verbatim, so they're "grounded" even when that passage is wrong), meaning
+almost all of the gate's discriminative power currently comes from the
+retrieval-margin signal alone, not the intended combination. This is the
+component doing exactly what Section IV-E's validation step is for: catching
+a signal that looks reasonable in aggregate but is silently carried by only
+one input, discoverable only by validating against labels. See
+`implementation/README.md` §3 for the full numbers and calibration table.
+
 ## What it is
 
 A gate that scores the pipeline's confidence in a candidate answer and, below

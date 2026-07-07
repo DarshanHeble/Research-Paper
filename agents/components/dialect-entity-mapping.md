@@ -3,6 +3,25 @@
 Answers **RQ2**: Does a dialect-to-scientific-entity mapping layer improve
 retrieval accuracy for queries phrased in regional or colloquial terms?
 
+## Implementation status
+
+Implemented at `implementation/src/dialect_mapping/mapper.py` as the
+**post-ASR text-normalization path** described below (not the embedding-space
+alternative) — a 29-entry demo lexicon
+(`implementation/data/dialect_lexicon.json`), self-curated from generally
+well-known North/Central-Indian farmer terminology, not the domain-expert- or
+public-KG-sourced resource contribution 2 calls for in a real deployment.
+Despite the demo-scale lexicon, this is the single biggest lever in the
+prototype's measured results: recall@1 on dialectal queries goes from ~0.0
+(every retrieval baseline without it) to **0.615** once the mapping layer is
+applied (`implementation/data/evaluation_results.json`) — a real, clean
+confirmation of this component's premise at demo scale, though it needs
+re-testing at a larger, messier KB before trusting that specific number. Not
+yet implemented: the embedding-space mapping path, so this mechanism doesn't
+currently compose with speech-native retrieval (see
+`implementation/src/pipeline.py`'s docstring). See `implementation/README.md`
+§1 for the full comparison table.
+
 ## What it is
 
 A normalization layer that maps the colloquial/regional/dialectal term a

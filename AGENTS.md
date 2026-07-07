@@ -26,10 +26,15 @@ for agricultural voice advisory in dialect-rich, low-resource settings:
 4. **Fully offline operation** on consumer-grade, GPU-constrained hardware.
 
 It poses four research questions (RQ1–RQ4, see `agents/paper.md`) and proposes
-an experimental protocol to answer them — it does **not** yet contain real
-experimental results. Do not fabricate numbers to fill this gap; see
-`agents/paper.md` for how the Results/Evaluation section is meant to be
-written honestly at this stage.
+an experimental protocol to answer them. The paper's own text (Section V/VI)
+does **not** claim real experimental results on the target dialect — that
+remains true and deliberate; do not fabricate numbers to fill that gap. What
+*does* now exist is a runnable software prototype of the architecture
+(`implementation/`, see below) that produces real measured numbers on small,
+honestly-labeled demo data — useful for stress-testing the mechanism, but not
+a substitute for the paper's own protocol run on real dialect data. See
+`agents/paper.md` and `implementation/README.md` for how each is meant to be
+read without conflating the two.
 
 ## Repository layout
 
@@ -37,11 +42,12 @@ written honestly at this stage.
 main.tex           IEEE conference paper source (compiles with IEEEtran)
 reference.bib      Bibliography (32 entries), with verification-status tags
 papers/            Local copies of every cited reference (PDF or .txt citation)
+implementation/    Runnable prototype of the proposed system (see its README.md)
 agents/            This documentation set
   paper.md              main.tex: structure, IEEE formatting rules, writing status
   bibliography.md       reference.bib + papers/: verification keys, how to add refs
-  implementation.md     The proposed system as software, independent of paper prose
-  components/           One file per architecture component (deep dives)
+  implementation.md     The proposed system as software; status of the real prototype
+  components/           One file per architecture component (deep dives + implementation status)
     speech-native-retrieval.md
     dialect-entity-mapping.md
     confidence-gated-escalation.md
@@ -54,8 +60,8 @@ agents/            This documentation set
 |---|---|
 | Editing paper prose, LaTeX, citations, section structure | `agents/paper.md` |
 | Adding/verifying a reference, understanding `papers/` folder | `agents/bibliography.md` |
-| Designing/building the actual RAG system (not the paper) | `agents/implementation.md` |
-| Deep-diving one of the four architecture pillars | `agents/components/*.md` |
+| Running or extending the actual prototype | `implementation/README.md` first, then `agents/implementation.md` |
+| Deep-diving one of the four architecture pillars (design + implementation status) | `agents/components/*.md` |
 
 ## Ground rules for anyone (agent or human) working on this paper
 

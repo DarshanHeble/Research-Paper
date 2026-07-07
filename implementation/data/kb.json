@@ -1,0 +1,380 @@
+[
+  {
+    "id": "kb001",
+    "crop": "Rice",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["brown planthopper", "Nilaparvata lugens", "hopperburn"],
+    "title": "Brown Planthopper in Rice",
+    "text": "Brown planthopper (Nilaparvata lugens) is a sap-sucking insect that congregates at the base of rice tillers, causing a rapid yellowing and drying symptom known as hopperburn. Populations build quickly under high humidity and excess nitrogen application. Recommended control includes avoiding excess nitrogen, maintaining alternate wetting and drying irrigation, conserving natural enemies such as mirid bugs and spiders, and applying imidacloprid or a recommended neonicotinoid only when populations exceed the economic threshold of 5-10 hoppers per hill."
+  },
+  {
+    "id": "kb002",
+    "crop": "Rice",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["yellow stem borer", "Scirpophaga incertulas", "stem borer", "deadheart", "whitehead"],
+    "title": "Yellow Stem Borer in Rice",
+    "text": "Yellow stem borer (Scirpophaga incertulas) larvae bore into rice stems, producing a 'deadheart' symptom (central shoot drying) during the vegetative stage and a 'whitehead' symptom (empty, sterile panicle) during the reproductive stage. Pheromone traps help monitor moth activity. Clipping and destroying egg masses, releasing Trichogramma egg parasitoids, and applying cartap hydrochloride or chlorantraniliprole at the recommended dose when deadhearts exceed 5 percent are standard integrated management steps."
+  },
+  {
+    "id": "kb003",
+    "crop": "Rice",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["rice blast", "Magnaporthe oryzae", "blast disease"],
+    "title": "Rice Blast Disease",
+    "text": "Rice blast, caused by the fungus Magnaporthe oryzae, produces spindle-shaped lesions with grey centers and brown margins on leaves, and can also infect the neck of the panicle causing neck blast, which cuts grain filling severely. High nitrogen doses and dense planting favor the disease. Management includes using resistant varieties, balanced nitrogen application, seed treatment with tricyclazole, and foliar sprays of tricyclazole or isoprothiolane at early symptom onset."
+  },
+  {
+    "id": "kb004",
+    "crop": "Rice",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["bacterial leaf blight", "Xanthomonas oryzae", "kresek"],
+    "title": "Bacterial Leaf Blight in Rice",
+    "text": "Bacterial leaf blight, caused by Xanthomonas oryzae pv. oryzae, enters through leaf wounds and hydathodes, producing water-soaked lesions that turn yellow to white and run along leaf margins. In severe seedling infections it causes a wilting phase called kresek. The disease spreads rapidly in wind-driven rain and standing floodwater. Management relies on resistant varieties, balanced nitrogen, avoiding leaf injury during transplanting, and copper oxychloride sprays combined with streptocycline where locally approved."
+  },
+  {
+    "id": "kb005",
+    "crop": "Rice",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["rice tungro virus", "tungro", "green leafhopper"],
+    "title": "Rice Tungro Disease",
+    "text": "Rice tungro disease is caused by a combination of two viruses, Rice Tungro Bacilliform Virus and Rice Tungro Spherical Virus, transmitted by the green leafhopper (Nephotettix virescens). Infected plants show yellow-orange leaf discoloration, stunting, and reduced tillering, with yield loss depending on infection stage. There is no curative treatment; management is preventive, focusing on synchronized planting, removing infected volunteer plants and grassy weeds that harbor the vector, and using tungro-tolerant varieties."
+  },
+  {
+    "id": "kb006",
+    "crop": "Wheat",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["karnal bunt", "Tilletia indica", "partial bunt"],
+    "title": "Karnal Bunt of Wheat",
+    "text": "Karnal bunt, caused by the fungus Tilletia indica, is a partial bunt of wheat grains where infected kernels develop a fish-odor black powdery mass replacing part of the endosperm, without necessarily destroying the whole grain. It is primarily a quality and quarantine concern rather than a major yield-loss disease, since infection is usually partial. Management includes seed treatment with carboxin or tebuconazole, crop rotation with non-cereal crops, and avoiding irrigation during the flowering to early grain-fill window when spores infect florets."
+  },
+  {
+    "id": "kb007",
+    "crop": "Wheat",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["wheat rust", "yellow rust", "stripe rust", "Puccinia striiformis"],
+    "title": "Yellow (Stripe) Rust of Wheat",
+    "text": "Yellow rust, also called stripe rust, is caused by Puccinia striiformis and appears as yellow-orange powdery pustules arranged in stripes along leaf veins, favored by cool, humid weather. Severe infection reduces photosynthetic area and grain filling. Management includes growing rust-resistant varieties, timely sowing to avoid peak disease-favorable temperature windows, and foliar fungicide sprays of propiconazole or tebuconazole once pustules are first observed on the lower canopy."
+  },
+  {
+    "id": "kb008",
+    "crop": "Wheat",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["aphid", "wheat aphid", "Sitobion avenae"],
+    "title": "Aphid Infestation in Wheat",
+    "text": "Wheat aphids (including Sitobion avenae and Rhopalosiphum species) cluster on leaves and ear heads, sucking sap and excreting honeydew that promotes sooty mould growth, and can also transmit barley yellow dwarf virus. Cool, dry conditions in the vegetative to earhead stage favor buildup. Conserving natural predators such as ladybird beetles and syrphid flies is the first line of defense; imidacloprid or dimethoate sprays are recommended only when aphid counts exceed the local economic threshold."
+  },
+  {
+    "id": "kb009",
+    "crop": "General",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["termite", "white ant", "Odontotermes"],
+    "title": "Termite Damage in Field Crops",
+    "text": "Termites (commonly Odontotermes obesus in South Asian fields) attack the root system and lower stem of standing crops, especially under moisture-stressed and sandy soils, causing wilting and plant death in patches that can be mistaken for drought stress. Well-decomposed farmyard manure free of termite colonies, avoiding un-decomposed organic matter incorporation, and seed or soil treatment with chlorpyrifos at sowing are the standard preventive measures."
+  },
+  {
+    "id": "kb010",
+    "crop": "Cotton",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["pink bollworm", "Pectinophora gossypiella", "rosette flower"],
+    "title": "Pink Bollworm in Cotton",
+    "text": "Pink bollworm (Pectinophora gossypiella) larvae bore into cotton flower buds and bolls, feeding on developing seeds and lint, and characteristically cause a 'rosette flower' symptom where petals are webbed together by larval silk. Infested bolls show pin-sized entry holes and internal staining. Management includes destroying crop residue and unopened bolls after harvest, pheromone traps for monitoring, avoiding extra-early or extra-late sowing, and using recommended Bt cotton hybrids alongside a non-Bt refuge to delay resistance."
+  },
+  {
+    "id": "kb011",
+    "crop": "Cotton",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["whitefly", "Bemisia tabaci"],
+    "title": "Whitefly in Cotton",
+    "text": "Whitefly (Bemisia tabaci) adults and nymphs feed on the underside of cotton leaves, excreting honeydew that supports sooty mould, and are also the vector for cotton leaf curl virus. Populations peak in warm, dry weather. Management includes yellow sticky traps for monitoring, conserving natural enemies, avoiding excess nitrogen, and applying diafenthiuron or a recommended systemic insecticide in rotation to reduce resistance buildup, respecting the pre-harvest interval."
+  },
+  {
+    "id": "kb012",
+    "crop": "Cotton",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["cotton leaf curl virus", "CLCuV", "leaf curl disease"],
+    "title": "Cotton Leaf Curl Virus Disease",
+    "text": "Cotton leaf curl virus disease is caused by a whitefly-transmitted begomovirus complex, producing upward or downward leaf curling, thickened veins, and leaf-like enations on the underside of leaves, which severely stunts plant growth and reduces boll formation. There is no direct cure once infected; management is centered on controlling the whitefly vector, removing and destroying infected plants early, and planting tolerant cotton varieties recommended for the region."
+  },
+  {
+    "id": "kb013",
+    "crop": "Cotton",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["jassid", "leafhopper", "Amrasca biguttula"],
+    "title": "Jassid (Leafhopper) in Cotton and Okra",
+    "text": "Jassids (Amrasca biguttula biguttula) are small wedge-shaped leafhoppers that feed on the underside of cotton and okra leaves, injecting toxic saliva that causes leaf margins to curl downward and turn yellow-bronze, a symptom called hopperburn. Hairy-leaved varieties suffer less damage. Management includes growing recommended tolerant varieties, conserving spiders and predatory bugs, and spraying imidacloprid or acetamiprid when nymphs exceed 2 per leaf on three consecutive counts."
+  },
+  {
+    "id": "kb014",
+    "crop": "Tomato",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["late blight", "Phytophthora infestans"],
+    "title": "Late Blight in Tomato",
+    "text": "Late blight, caused by the oomycete Phytophthora infestans, produces irregular water-soaked lesions on leaves that quickly turn brown with a pale green halo, and a white fungal growth on the underside in humid conditions; fruit develop firm brown blotches. Cool, wet weather drives rapid spread and can destroy a field within days. Management includes wide plant spacing for airflow, avoiding overhead irrigation in the evening, and preventive sprays of mancozeb or a systemic fungicide like metalaxyl once disease-favorable weather is forecast."
+  },
+  {
+    "id": "kb015",
+    "crop": "Tomato",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["early blight", "Alternaria solani"],
+    "title": "Early Blight in Tomato",
+    "text": "Early blight, caused by Alternaria solani, produces dark brown lesions with concentric target-like rings, usually starting on older lower leaves and progressing upward, and can also affect stems and fruit near the calyx. It is favored by warm temperatures alternating with dew or rain. Management includes removing infected lower leaves, crop rotation away from solanaceous crops, and fungicide sprays of mancozeb or chlorothalonil applied preventively at first symptom appearance."
+  },
+  {
+    "id": "kb016",
+    "crop": "Tomato",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["tomato leaf curl virus", "ToLCV", "leaf curl"],
+    "title": "Tomato Leaf Curl Virus",
+    "text": "Tomato leaf curl virus, a whitefly-transmitted begomovirus, causes upward curling and crinkling of leaflets, reduced leaf size, and severe stunting when plants are infected young, often resulting in near-total fruit loss in early infections. There is no chemical cure for infected plants. Management focuses on raising seedlings under insect-proof nylon mesh nurseries, roguing out infected plants early, and controlling the whitefly vector population around the nursery and main field."
+  },
+  {
+    "id": "kb017",
+    "crop": "Tomato",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["fruit borer", "Helicoverpa armigera", "American bollworm"],
+    "title": "Fruit Borer in Tomato",
+    "text": "The fruit borer (Helicoverpa armigera), also called the American bollworm on cotton, bores a round entry hole into tomato fruit and feeds internally, leaving frass near the entry point and making fruit unmarketable. Pheromone traps at 5 per acre help monitor moth activity. Management includes hand-picking and destroying infested fruit, releasing Trichogramma egg parasitoids, and applying a recommended insecticide such as chlorantraniliprole or emamectin benzoate at first sign of fresh damage."
+  },
+  {
+    "id": "kb018",
+    "crop": "Chili",
+    "category": "pest",
+    "rarity": "common",
+    "entities": ["thrips", "Scirtothrips dorsalis", "leaf curling"],
+    "title": "Thrips in Chili",
+    "text": "Chili thrips (Scirtothrips dorsalis) scrape the leaf surface and feed on the released sap, causing upward leaf curling, a bronze discoloration along veins, and stunted growth, and can also transmit tospoviruses. Hot, dry weather favors rapid buildup. Management includes blue sticky traps for monitoring, conserving predatory mites and bugs, and spraying a recommended systemic insecticide such as fipronil or spinosad, rotating chemical classes to slow resistance development."
+  },
+  {
+    "id": "kb019",
+    "crop": "Chili",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["anthracnose", "fruit rot", "Colletotrichum"],
+    "title": "Anthracnose Fruit Rot in Chili",
+    "text": "Anthracnose fruit rot, caused by Colletotrichum species, produces sunken, circular, water-soaked spots on ripening chili fruit that enlarge and develop concentric rings of dark fungal fruiting bodies, causing major post-harvest loss in humid regions. Infection is favored by warm, wet weather during fruit ripening. Management includes using disease-free seed, removing and destroying infected fruit, and preventive sprays of carbendazim or a copper-based fungicide starting at fruit set."
+  },
+  {
+    "id": "kb020",
+    "crop": "General",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["powdery mildew"],
+    "title": "Powdery Mildew in Vegetable Crops",
+    "text": "Powdery mildew appears as a white, powdery fungal growth on the upper and lower leaf surface of vegetable crops such as cucurbits, okra, and chili, eventually causing leaf yellowing, curling, and premature drying. It spreads fastest in warm days with cool nights and high humidity, without needing free water on the leaf. Management includes wettable sulphur sprays, avoiding excess nitrogen, ensuring adequate plant spacing for airflow, and hexaconazole or myclobutanil sprays for established infections."
+  },
+  {
+    "id": "kb021",
+    "crop": "Sugarcane",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["red rot", "Colletotrichum falcatum"],
+    "title": "Red Rot of Sugarcane",
+    "text": "Red rot, caused by Colletotrichum falcatum, is one of the most destructive sugarcane diseases, producing internal reddening of the stalk interspersed with white cross bands visible when the cane is split open, along with an alcoholic smell from fermenting juice. Infected setts are the primary source of spread. Management relies heavily on planting disease-free setts of resistant varieties, hot-water treatment of seed setts, and destroying infected clumps and crop residue rather than chemical control, since fungicides give limited field-level protection."
+  },
+  {
+    "id": "kb022",
+    "crop": "Sugarcane",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["early shoot borer", "Chilo infuscatellus"],
+    "title": "Early Shoot Borer in Sugarcane",
+    "text": "Early shoot borer (Chilo infuscatellus) larvae bore into young sugarcane shoots at ground level, producing a characteristic deadheart with a foul smell when the central shoot is pulled out and gives way easily. Infestation is highest in the first three months after planting. Management includes removing and destroying deadhearts, releasing Trichogramma chilonis parasitoids, and applying a recommended granular insecticide such as carbofuran or chlorantraniliprole at planting and again at the peak infestation window."
+  },
+  {
+    "id": "kb023",
+    "crop": "Potato",
+    "category": "disease",
+    "rarity": "common",
+    "entities": ["late blight", "Phytophthora infestans", "potato blight"],
+    "title": "Late Blight in Potato",
+    "text": "Potato late blight, caused by Phytophthora infestans, causes dark water-soaked lesions on leaves with a white fungal ring on the underside in humid weather, and can rot tubers in storage if spores wash down to the soil. Cool, humid, overcast weather triggers rapid epidemics that can destroy a crop within a week. Management includes earthing up to protect tubers from spores, avoiding overhead irrigation, and preventive fungicide sprays of mancozeb followed by a systemic fungicide such as cymoxanil once the disease is confirmed."
+  },
+  {
+    "id": "kb024",
+    "crop": "Potato",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["potato tuber moth", "Phthorimaea operculella"],
+    "title": "Potato Tuber Moth",
+    "text": "Potato tuber moth (Phthorimaea operculella) larvae mine leaves and tunnel into exposed tubers both in the field and in storage, leaving frass-filled galleries that make tubers unfit for sale or seed use. Infestation risk rises when tubers are exposed by cracked ridges or in poorly covered storage heaps. Management includes deep and thorough earthing up, avoiding tuber exposure, and storing seed tubers with dried neem leaves or approved storage-grade insecticide dust."
+  },
+  {
+    "id": "kb025",
+    "crop": "Brinjal",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["shoot and fruit borer", "Leucinodes orbonalis"],
+    "title": "Shoot and Fruit Borer in Brinjal",
+    "text": "Brinjal shoot and fruit borer (Leucinodes orbonalis) larvae first bore into tender shoots causing wilting shoot tips, then bore into fruit leaving a small entry hole plugged with frass, making the fruit unmarketable and vulnerable to secondary rot. Management includes clipping and destroying wilted shoots weekly, using pheromone traps, and, where locally approved, growing Bt brinjal hybrids alongside destroying infested fruit before larvae complete development and drop to pupate in soil."
+  },
+  {
+    "id": "kb026",
+    "crop": "Maize",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["fall armyworm", "Spodoptera frugiperda"],
+    "title": "Fall Armyworm in Maize",
+    "text": "Fall armyworm (Spodoptera frugiperda) is an invasive pest whose larvae feed inside the whorl of young maize plants, leaving characteristic window-pane feeding damage and coarse sawdust-like frass in the whorl, and can cause severe yield loss if uncontrolled at early vegetative stages. It has a wide host range and disperses over long distances as an adult moth. Management includes early scouting of the whorl, hand-crushing egg masses, and applying emamectin benzoate or spinetoram directed into the whorl once damage crosses the threshold."
+  },
+  {
+    "id": "kb027",
+    "crop": "Maize",
+    "category": "disease",
+    "rarity": "rare",
+    "entities": ["turcicum leaf blight", "Exserohilum turcicum", "northern corn leaf blight"],
+    "title": "Turcicum Leaf Blight in Maize",
+    "text": "Turcicum leaf blight (northern corn leaf blight), caused by Exserohilum turcicum, produces long, cigar-shaped grey-green to tan lesions on maize leaves that can coalesce and blight the entire leaf under humid conditions. Continuous maize monocropping and residue retention increase inoculum carryover. Management includes crop rotation, destruction of infected residue, resistant hybrids, and a preventive fungicide spray of mancozeb or propiconazole at first lesion appearance in susceptible fields."
+  },
+  {
+    "id": "kb028",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "common",
+    "entities": ["imidacloprid", "neonicotinoid"],
+    "title": "Imidacloprid Use Guidance",
+    "text": "Imidacloprid is a systemic neonicotinoid insecticide highly effective against sap-sucking pests such as aphids, jassids, whiteflies, and planthoppers, applied as a foliar spray, soil drench, or seed treatment. It is toxic to bees, so foliar sprays should be avoided during flowering and applied in the evening when pollinators are less active. Recommended field dose and pre-harvest interval must be followed exactly as per the product label, and it should be rotated with a different insecticide class each generation to delay resistance."
+  },
+  {
+    "id": "kb029",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "common",
+    "entities": ["chlorpyrifos", "organophosphate"],
+    "title": "Chlorpyrifos Use Guidance",
+    "text": "Chlorpyrifos is a broad-spectrum organophosphate insecticide used against soil-dwelling pests such as termites and root grubs, and against several foliar chafers and borers, applied as a soil application at sowing or as a foliar spray. It has moderate mammalian toxicity, so protective equipment, correct dilution, and the labeled pre-harvest interval must be strictly observed, and it should not be mixed with alkaline materials such as lime, which degrade its active ingredient."
+  },
+  {
+    "id": "kb030",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "common",
+    "entities": ["mancozeb", "fungicide"],
+    "title": "Mancozeb Use Guidance",
+    "text": "Mancozeb is a broad-spectrum contact fungicide from the dithiocarbamate group, widely used to prevent early blight, late blight, and several leaf spot diseases across vegetables and field crops. Being a protectant rather than a curative fungicide, it works best when applied before disease onset or at the earliest symptom and needs reapplication after heavy rain since it washes off the leaf surface. It is often alternated with a systemic fungicide to manage resistance and to provide curative action once infection is established."
+  },
+  {
+    "id": "kb031",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "rare",
+    "entities": ["carbendazim", "systemic fungicide"],
+    "title": "Carbendazim Use Guidance",
+    "text": "Carbendazim is a systemic benzimidazole fungicide absorbed by plant tissue, effective against a range of fungal diseases including anthracnose, leaf spots, and wilt-causing pathogens, and is also used as a seed treatment to protect germinating seedlings. Because resistance develops relatively easily in fungal populations exposed repeatedly to benzimidazole fungicides, it should be used in rotation or combination with a fungicide from a different mode-of-action group, following the labeled dose and harvest interval."
+  },
+  {
+    "id": "kb032",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "common",
+    "entities": ["copper oxychloride", "bactericide", "fungicide"],
+    "title": "Copper Oxychloride Use Guidance",
+    "text": "Copper oxychloride is a protectant fungicide-bactericide that forms a residual copper film on plant surfaces, commonly used against bacterial leaf blight, bacterial spot, and several fungal leaf diseases. It works preventively rather than curatively and needs reapplication after rain. Copper products can cause phytotoxic leaf burn if applied at high temperature or in combination with certain other agrochemicals, so label-recommended concentration, timing, and tank-mix compatibility should be checked before spraying."
+  },
+  {
+    "id": "kb033",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "rare",
+    "entities": ["cypermethrin", "synthetic pyrethroid"],
+    "title": "Cypermethrin Use Guidance",
+    "text": "Cypermethrin is a synthetic pyrethroid insecticide with fast knockdown action against a broad range of chewing and some sucking pests, including bollworms and fruit borers, acting on the insect nervous system. It is highly toxic to fish and aquatic life, so spray drift into ponds, canals, and fish-farming water bodies must be strictly avoided. Repeated use alone encourages resistance, so it is recommended in rotation with insecticides of a different mode of action."
+  },
+  {
+    "id": "kb034",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "rare",
+    "entities": ["propiconazole", "triazole fungicide"],
+    "title": "Propiconazole Use Guidance",
+    "text": "Propiconazole is a systemic triazole fungicide effective against rust diseases, leaf blights, and several other fungal pathogens in cereals, absorbed and translocated within plant tissue to give both protective and limited curative action. It is most effective when applied at first symptom appearance rather than after severe defoliation has already occurred. As with other triazoles, repeated season-long use without rotation encourages resistance buildup in the target fungal population."
+  },
+  {
+    "id": "kb035",
+    "crop": "General",
+    "category": "pesticide",
+    "rarity": "rare",
+    "entities": ["Bacillus thuringiensis", "Bt", "biopesticide"],
+    "title": "Bacillus thuringiensis (Bt) Biopesticide",
+    "text": "Bacillus thuringiensis (Bt) is a soil bacterium whose spore and crystal toxin formulations are used as a biopesticide against caterpillar pests such as fruit borers and armyworms; the toxin must be ingested by the larva to be effective, so thorough spray coverage of foliage the larvae feed on is essential. It breaks down quickly under strong sunlight, so evening application improves persistence. Being a biological product, it is compatible with integrated pest management and safer for natural enemies than most synthetic insecticides."
+  },
+  {
+    "id": "kb036",
+    "crop": "General",
+    "category": "pest",
+    "rarity": "rare",
+    "entities": ["khapra beetle", "Trogoderma granarium", "storage pest"],
+    "title": "Khapra Beetle in Stored Grain",
+    "text": "Khapra beetle (Trogoderma granarium) is a highly destructive storage pest of wheat, rice, and other stored grains, surviving long periods without food and hiding in cracks, making it extremely difficult to eradicate once established in a storage structure. It is a quarantine pest of major international trade concern. Management includes thorough cleaning and sealing of storage structures before filling, fumigation with an approved fumigant such as aluminium phosphide under expert supervision, and regular inspection of stored grain for larval skins and damage."
+  },
+  {
+    "id": "kb037",
+    "crop": "General",
+    "category": "post-harvest",
+    "rarity": "rare",
+    "entities": ["aflatoxin", "grain contamination", "Aspergillus"],
+    "title": "Aflatoxin Contamination in Stored Grain",
+    "text": "Aflatoxin is a toxic compound produced by Aspergillus flavus and related fungi that can contaminate maize, groundnut, and other stored grains, particularly when grain is stored with high moisture content or after insect damage creates entry points for the fungus. Aflatoxin is not destroyed by normal cooking and poses a serious health risk with prolonged exposure. Prevention relies on drying grain to safe moisture levels before storage, keeping storage areas dry and pest-free, and discarding visibly mouldy or insect-damaged grain rather than blending it with clean stock."
+  },
+  {
+    "id": "kb038",
+    "crop": "General",
+    "category": "agronomy",
+    "rarity": "common",
+    "entities": ["integrated pest management", "IPM"],
+    "title": "Integrated Pest Management Principles",
+    "text": "Integrated Pest Management (IPM) combines regular field scouting, economic threshold-based decision-making, cultural practices such as crop rotation and resistant varieties, biological control through natural enemies, and chemical pesticides used only as a last resort at the correct dose and timing. The goal is to keep pest populations below the level causing economic damage while minimizing pesticide use, resistance development, and harm to beneficial insects and the environment. Farmer field schools are a common extension method for teaching IPM decision-making."
+  },
+  {
+    "id": "kb039",
+    "crop": "General",
+    "category": "agronomy",
+    "rarity": "common",
+    "entities": ["soil pH", "soil testing", "lime application"],
+    "title": "Soil pH Testing and Amendment",
+    "text": "Soil pH strongly affects nutrient availability to crops; most field crops prefer a slightly acidic to neutral range of about 6.0 to 7.5, outside of which nutrients such as phosphorus and micronutrients become less available even when present in the soil. A simple soil test before the season identifies whether the soil is acidic or alkaline. Acidic soils are corrected by applying agricultural lime, while alkaline soils benefit from gypsum application and organic matter incorporation to improve nutrient availability over time."
+  },
+  {
+    "id": "kb040",
+    "crop": "General",
+    "category": "agronomy",
+    "rarity": "common",
+    "entities": ["crop rotation"],
+    "title": "Crop Rotation for Pest and Disease Management",
+    "text": "Rotating unrelated crop families across seasons breaks the life cycle of many soil-borne pathogens and pests that survive in soil or crop residue between seasons, reducing reliance on chemical control. For example, rotating a cereal crop with a legume not only disrupts cereal-specific pests and diseases such as certain root rots and nematodes, but also improves soil nitrogen through biological fixation. Rotation is most effective against pests and diseases with a narrow host range and limited long-distance dispersal ability."
+  },
+  {
+    "id": "kb041",
+    "crop": "General",
+    "category": "agronomy",
+    "rarity": "common",
+    "entities": ["NPK fertilizer", "balanced fertilization"],
+    "title": "Balanced NPK Fertilizer Application",
+    "text": "Balanced application of nitrogen, phosphorus, and potassium (NPK) according to soil test recommendations and crop stage supports healthy growth while avoiding the excess vegetative growth and pest susceptibility that comes from over-application of nitrogen alone. Nitrogen is best split across two to three doses through the season rather than applied all at sowing, to reduce leaching losses and lodging risk, while phosphorus and potassium are typically applied as a basal dose at sowing since they move less in the soil."
+  },
+  {
+    "id": "kb042",
+    "crop": "General",
+    "category": "agronomy",
+    "rarity": "common",
+    "entities": ["seed treatment"],
+    "title": "Seed Treatment Before Sowing",
+    "text": "Treating seed with a recommended fungicide, insecticide, or biological seed coating before sowing protects germinating seedlings from soil-borne diseases and early-season sucking pests, often giving three to four weeks of protection without a separate spray. Common seed treatments include a fungicide such as carbendazim or thiram against seed and soil-borne fungi, and an insecticide such as imidacloprid against early sucking pests, applied at the manufacturer's recommended rate and allowed to dry before sowing."
+  }
+]

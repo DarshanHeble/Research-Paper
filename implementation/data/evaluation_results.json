@@ -1,0 +1,344 @@
+{
+  "1_keyword_only_bm25": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.5,
+      "recall@3": 0.54,
+      "mrr": 0.52
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.9166666666666666,
+      "recall@3": 1.0,
+      "mrr": 0.9583333333333334
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "mrr": 1.0
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.07692307692307693,
+      "recall@3": 0.15384615384615385,
+      "mrr": 0.11538461538461539
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.07692307692307693,
+      "recall@3": 0.07692307692307693,
+      "mrr": 0.07692307692307693
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.9583333333333334,
+      "recall@3": 1.0,
+      "mrr": 0.9791666666666666
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.07692307692307693,
+      "recall@3": 0.11538461538461539,
+      "mrr": 0.09615384615384616
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.48,
+      "recall@3": 0.56,
+      "mrr": 0.52
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.52,
+      "recall@3": 0.52,
+      "mrr": 0.52
+    },
+    "_wall_seconds": 0.008663177490234375
+  },
+  "2_dense_only": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.4,
+      "recall@3": 0.5,
+      "mrr": 0.44333333333333336
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.8333333333333334,
+      "recall@3": 0.9166666666666666,
+      "mrr": 0.875
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 0.8333333333333334,
+      "recall@3": 1.0,
+      "mrr": 0.9027777777777778
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.0
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.15384615384615385,
+      "mrr": 0.0641025641025641
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.8333333333333334,
+      "recall@3": 0.9583333333333334,
+      "mrr": 0.8888888888888888
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.0,
+      "recall@3": 0.07692307692307693,
+      "mrr": 0.03205128205128205
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.4,
+      "recall@3": 0.44,
+      "mrr": 0.42
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.4,
+      "recall@3": 0.56,
+      "mrr": 0.4666666666666666
+    },
+    "_wall_seconds": 0.1544814109802246
+  },
+  "3_hybrid_no_dialect_mapping": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.46,
+      "recall@3": 0.52,
+      "mrr": 0.48833333333333334
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.9166666666666666,
+      "recall@3": 0.9166666666666666,
+      "mrr": 0.9375
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "mrr": 1.0
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.15384615384615385,
+      "mrr": 0.0641025641025641
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.07692307692307693,
+      "mrr": 0.02564102564102564
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.9583333333333334,
+      "recall@3": 0.9583333333333334,
+      "mrr": 0.96875
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.0,
+      "recall@3": 0.11538461538461539,
+      "mrr": 0.044871794871794865
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.44,
+      "recall@3": 0.52,
+      "mrr": 0.48333333333333334
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.48,
+      "recall@3": 0.52,
+      "mrr": 0.49333333333333335
+    },
+    "_wall_seconds": 0.16469168663024902
+  },
+  "4_hybrid_plus_dialect_mapping": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.78,
+      "recall@3": 0.84,
+      "mrr": 0.8133333333333332
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.9166666666666666,
+      "recall@3": 0.9166666666666666,
+      "mrr": 0.9375
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "mrr": 1.0
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.6153846153846154,
+      "recall@3": 0.7692307692307693,
+      "mrr": 0.6987179487179488
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.6153846153846154,
+      "recall@3": 0.6923076923076923,
+      "mrr": 0.6410256410256411
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.9583333333333334,
+      "recall@3": 0.9583333333333334,
+      "mrr": 0.96875
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.6153846153846154,
+      "recall@3": 0.7307692307692307,
+      "mrr": 0.6698717948717949
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.76,
+      "recall@3": 0.84,
+      "mrr": 0.8133333333333332
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.8,
+      "recall@3": 0.84,
+      "mrr": 0.8133333333333332
+    },
+    "_wall_seconds": 0.17920947074890137
+  },
+  "5_asr_cascade_whisper_tiny": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.38,
+      "recall@3": 0.4,
+      "mrr": 0.4006666666666667
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.5833333333333334,
+      "recall@3": 0.6666666666666666,
+      "mrr": 0.6319444444444444
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 1.0,
+      "recall@3": 1.0,
+      "mrr": 1.0
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.03461538461538462
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.0
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.7916666666666666,
+      "recall@3": 0.8333333333333334,
+      "mrr": 0.8159722222222222
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.01730769230769231
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.28,
+      "recall@3": 0.32,
+      "mrr": 0.3213333333333333
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.48,
+      "recall@3": 0.48,
+      "mrr": 0.48
+    },
+    "_wall_seconds": 16.366748809814453
+  },
+  "6_speech_native_adapter": {
+    "overall": {
+      "n": 50,
+      "recall@1": 0.0,
+      "recall@3": 0.08,
+      "mrr": 0.06233333333333333
+    },
+    "standard/common": {
+      "n": 12,
+      "recall@1": 0.0,
+      "recall@3": 0.16666666666666666,
+      "mrr": 0.0861111111111111
+    },
+    "standard/rare": {
+      "n": 12,
+      "recall@1": 0.0,
+      "recall@3": 0.16666666666666666,
+      "mrr": 0.09027777777777778
+    },
+    "dialectal/common": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.0
+    },
+    "dialectal/rare": {
+      "n": 13,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.07692307692307693
+    },
+    "phrasing=standard": {
+      "n": 24,
+      "recall@1": 0.0,
+      "recall@3": 0.16666666666666666,
+      "mrr": 0.08819444444444445
+    },
+    "phrasing=dialectal": {
+      "n": 26,
+      "recall@1": 0.0,
+      "recall@3": 0.0,
+      "mrr": 0.038461538461538464
+    },
+    "rarity=common": {
+      "n": 25,
+      "recall@1": 0.0,
+      "recall@3": 0.08,
+      "mrr": 0.041333333333333326
+    },
+    "rarity=rare": {
+      "n": 25,
+      "recall@1": 0.0,
+      "recall@3": 0.08,
+      "mrr": 0.08333333333333334
+    },
+    "_wall_seconds": 2.2381856441497803
+  }
+}

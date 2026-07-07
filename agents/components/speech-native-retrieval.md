@@ -4,6 +4,22 @@ Answers **RQ1**: Does speech-native retrieval retain its advantage over
 ASR-cascaded retrieval under dialect variation and domain-critical rare
 vocabulary?
 
+## Implementation status
+
+A real, working version of this mechanism exists at
+`implementation/src/speech_retrieval/{adapter,train_adapter,speech_retriever}.py`
+— a frozen wav2vec2-base encoder feeding a small trained MLP adapter into the
+same embedding space as the dense text retriever, trained with an in-batch
+InfoNCE contrastive loss. It trains in ~20s on a consumer GPU (RTX 3050 6GB)
+and reaches 55.6% top-1 accuracy on its own held-out validation split (vs.
+2.4% chance for 42-way retrieval) — real evidence the SpeechRAG/S2R-style
+mechanism works end to end on this hardware. It does **not** generalize to
+`implementation/data/eval_queries.jsonl`'s differently-phrased queries
+(~0% recall@1 there) — a real, reported generalization gap, not a bug, and
+not a resolution of RQ1: there is still no real target-dialect speech data to
+train or evaluate on, so RQ1 as the paper poses it remains open. See
+`implementation/README.md` §2 for the full numbers and discussion.
+
 ## What it is
 
 Retrieving relevant documents/passages directly from a speech representation

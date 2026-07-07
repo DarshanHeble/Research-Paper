@@ -1,0 +1,30 @@
+# Install torch first, from the CUDA 12.4 wheel index (matches the RTX 3050 dev box
+# this was built/benchmarked on -- driver reports CUDA 13.2 which is backward compatible):
+#   pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+# Then install the rest of this file:
+#   pip install -r requirements.txt
+#
+# transformers>=4.48-ish refuses to torch.load() non-safetensors checkpoints (e.g. the
+# facebook/wav2vec2-base .bin weights) unless torch>=2.6 -- hence the version floor above.
+# CPU-only machines: just `pip install torch==2.6.0` (drops CUDA) then this file; the
+# pipeline auto-detects and falls back to CPU everywhere.
+
+numpy==2.4.6
+scipy==1.18.0
+sentence-transformers==5.6.0
+transformers==5.13.0
+accelerate==1.14.0
+tokenizers==0.22.2
+safetensors==0.8.0
+huggingface_hub==1.22.0
+
+rank-bm25==0.2.2
+
+faster-whisper==1.2.1
+ctranslate2==4.8.1
+onnxruntime==1.27.0
+
+soundfile==0.14.0
+librosa==0.11.0
+
+pytest==9.1.1

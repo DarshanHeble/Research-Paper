@@ -1,0 +1,7 @@
+.venv/
+.hf_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+models/
+data/synthetic_audio/
