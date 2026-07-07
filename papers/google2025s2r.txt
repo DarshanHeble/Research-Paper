@@ -1,0 +1,17 @@
+Title: Speech-to-Retrieval (S2R): A New Approach to Voice Search
+Authors: Ehsan Variani, Michael Riley (Google Research)
+Venue/Year: Google Research Blog, 7 October 2025
+DOI/URL: https://research.google/blog/speech-to-retrieval-s2r-a-new-approach-to-voice-search/
+Status: Blog post/announcement, not a formally published paper -- no PDF exists. URL verified by fetching the page directly (title and article body confirmed to match this citation). Full text of the post has been retained in this fallback since no PDF is available:
+
+Voice Search is now powered by Google's new Speech-to-Retrieval engine, which gets answers straight from a spoken query without having to convert it to text first, resulting in a faster, more reliable search for everyone.
+
+Google's initial voice search solution used automatic speech recognition (ASR) to turn the voice input into a text query, and then searched for documents matching that text query. A challenge with this cascade modeling approach is that slight errors in the speech recognition phase can significantly alter the meaning of the query, producing wrong results (e.g., "the Scream painting" being misheard as "screen painting").
+
+Speech-to-Retrieval (S2R) directly interprets and retrieves information from a spoken query without the intermediate step of producing a text transcript, representing a shift from "What words were said?" to "What information is being sought?" The post also introduces the open-sourced Simple Voice Questions (SVQ) dataset -- short audio questions recorded in 17 languages and 26 locales -- used to evaluate S2R, and part of the Massive Sound Embedding Benchmark (MSEB).
+
+Architecture: S2R uses a dual-encoder architecture -- an audio encoder that converts a spoken query into a vector representation of its semantic meaning, and a document encoder that produces a comparable vector representation for documents. Both encoders are trained jointly so that the audio-query vector sits close to the vectors of its corresponding relevant documents.
+
+Evaluation: Using MRR (mean reciprocal rank) and WER (word error rate) across SVQ languages, the authors found that lower WER does not reliably predict higher MRR, and that a substantial performance gap exists between real-world cascade ASR systems and a theoretical "perfect ASR" (cascade groundtruth) baseline. The S2R model significantly outperformed the cascade ASR baseline and approached the cascade groundtruth upper bound.
+
+Deployment: As of the post date, S2R models are live in production, serving Google Voice Search users in multiple languages through a collaboration between Google Research and Google Search.

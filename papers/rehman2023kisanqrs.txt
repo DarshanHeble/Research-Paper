@@ -1,0 +1,5 @@
+Title: KisanQRS: A Deep Learning-Based Automated Query-Response System for Agricultural Decision-Making
+Authors: Mohammad Zia Ur Rehman, Devraj Raghuvanshi, Nagendra Kumar
+Venue/Year: Computers and Electronics in Agriculture, vol. 213, p. 108180, 2023
+DOI/URL: https://doi.org/10.1016/j.compag.2023.108180
+Status: Elsevier/ScienceDirect paywalled -- doi.org redirect resolves to a ScienceDirect access-restricted page (login/purchase required), not an open PDF. No legally free copy found.

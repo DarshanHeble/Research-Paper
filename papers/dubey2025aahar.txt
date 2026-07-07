@@ -1,0 +1,5 @@
+Title: A.A.H.A.R.: AI-Assisted Hub for Agricultural Revolution
+Authors: Divyanshu Dubey
+Venue/Year: ResearchGate (technical report), 2025
+DOI/URL: https://www.researchgate.net/publication/392268653_AAHAR_AI-Assisted_Hub_for_Agricultural_Revolution
+Status: ResearchGate blocks anonymous/bot access to the full text (HTTP 403 on direct fetch); no peer-reviewed venue or DOI found. No PDF legally obtainable without a ResearchGate login.

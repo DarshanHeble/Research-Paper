@@ -1,0 +1,13 @@
+Title: India to Get Its First AI-Based Chatbot to Tackle Drought (SukhaRakshak AI)
+Authors: Giriraj Amarnath, Sanya Kapoor, Dhyey Bhatpuria, K.V. Rao, Alok Sikka (International Water Management Institute, IWMI)
+Venue/Year: IWMI Blog, 8 July 2025
+DOI/URL: https://www.iwmi.org/blogs/india-to-get-its-first-ai-based-chatbot-to-tackle-drought/
+Status: Blog post, not a formally published paper -- no PDF exists. Page fetched successfully and verified to match this citation (title, byline, and body confirmed). Key excerpt retained below since no PDF is available:
+
+"India to get its first AI-based chatbot to tackle drought -- SukhaRakshak AI, the drought protector, is to transform the realities of millions of farmers and their communities."
+
+India's agricultural sector -- comprising over 120 million smallholder farmers -- is extremely susceptible to drought, which affects crops, livestock, fisheries, and rural livelihoods and food security. Effective drought governance in India is complicated not only by erratic rainfall and climate variability but also by fragmented data systems, limited real-time information flow, and the need to coordinate across meteorological departments and agricultural extension agencies.
+
+The International Water Management Institute (IWMI) introduced the South Asia Drought Monitoring System (SADMS) in 2016 to address these challenges, providing near real-time monitoring of meteorological and agricultural drought via satellite-derived indices (integrated drought severity index, standardized precipitation index). Building on SADMS, IWMI is introducing SukhaRakshak AI, an AI-based chatbot intended to deliver timely, actionable drought advisories directly to farmers and communities in India, as part of the CGIAR Climate Action Program and the Drought Action Catalyst project.
+
+Tags associated with the article: Artificial intelligence (AI), chatbot, Drought, Private sector engagement, Vulnerable groups.

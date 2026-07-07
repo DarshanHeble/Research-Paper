@@ -1,0 +1,5 @@
+Title: Deep Learning-Based Query-Count Forecasting Using Farmers' Helpline Data
+Authors: Samarth Godara, Durga Toshniwal
+Venue/Year: Computers and Electronics in Agriculture, vol. 196, p. 106875, 2022
+DOI/URL: https://doi.org/10.1016/j.compag.2022.106875
+Status: Elsevier/ScienceDirect paywalled -- doi.org redirect resolves to a ScienceDirect access-restricted page (login/purchase required), not an open PDF. No legally free copy found.

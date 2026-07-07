@@ -1,0 +1,5 @@
+Title: An ASR Corpus in Chhattisgarhi, a Low Resource Indian Language
+Authors: Aditya Singh and others (RESPIN dialect speech-data initiative; full author list not independently verified)
+Venue/Year: Speech and Computer (SPECOM 2023), Lecture Notes in Computer Science vol. 14339, Springer, 2023
+DOI/URL: unknown (no confirmed DOI in source bibliography)
+Status: Springer paywalled -- SpringerLink access attempts redirect to the Springer IDP login/authorization flow, indicating restricted access. No open-access copy found.

@@ -3,13 +3,14 @@
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -78,7 +79,7 @@ The main contributions of this paper are:
 \end{itemize}
 
 
-The remainder of this paper is organized as follows: Section II reviews related work; Section III presents the proposed architecture; Section IV describes the experimental setup; Section V presents results; and Section VI concludes.
+The remainder of this paper is organized as follows: Section II reviews related work; Section III presents the proposed architecture; Section IV describes the experimental protocol designed to evaluate it; Section V outlines the evaluation plan and expected outcomes for each research question, since the protocol has not yet been executed; and Section VI concludes.
 
 \section{LITERATURE REVIEW}
 
@@ -123,25 +124,108 @@ Quantization and on-device deployment of large language models is an active syst
 Taken together, the systems reviewed above each address a subset of the requirements motivated in Section I, but none addresses all of them jointly. Farmer.Chat, KrishokBondhu, SukhaRakshak AI, A.A.H.A.R., and Krishi Sathi demonstrate that voice-enabled agricultural RAG is deployable at scale, but all rely on an ASR-then-retrieval cascade; A.A.H.A.R. and Krishi Sathi only adapt the ASR component to dialects rather than removing the dependence on transcription. SpeechRAG and S2R demonstrate that speech-native retrieval is viable and can outperform the cascade, but neither has been evaluated under dialect variation or domain-critical rare vocabulary, and neither targets agriculture. The colloquial-to-formal mapping work of Liu et al. and the Bengali RAG case study show that normalizing informal terminology is both necessary and actively studied, but only in text. Confidence-gated abstention and offline deployment are each independently established techniques, including within agricultural RAG specifically. The combination of all four — speech-native, dialect-aware, confidence-gated, offline agricultural retrieval — does not appear in any system located during this review, and one of the closest text-based systems in the same problem space explicitly names this combination as unaddressed future work of its own \cite{hossain2026bengalirag}.
 
 
-\section{COMPARATIVE ANALYSIS OF PREVIOUS WORKS}
+\section{Proposed Architecture}
 
+\subsection{Design Overview}
 
+The architecture proposed here integrates the four components motivated in Section I into a single pipeline, illustrated in Fig.~\ref{fig:architecture}. A spoken farmer query is first mapped directly into a retrieval-ready representation without an intervening transcription step (Section III-B); the resulting representation is normalized against a dialect-to-scientific-entity mapping layer so that regional and colloquial terms resolve to the same retrieval targets as their standardized equivalents (Section III-C); retrieval itself is performed by a hybrid lexical-dense retriever, chosen specifically because neither method alone is reliable across both paraphrased and rare-entity queries (Section III-D); the retrieved evidence and a confidence score are then passed through a gate that either proceeds to answer generation or escalates the query to a human expert (Section III-E); and every stage except one-time adapter training is required to execute fully offline on consumer-grade hardware (Section III-F). Each subsection below states the design decision, the prior work it builds on, and the specific gap in that prior work the decision is intended to close.
 
-\section{Performance Analysis}
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  block/.style={rectangle, draw, rounded corners, align=center, minimum width=4.1cm, minimum height=0.8cm, font=\scriptsize},
+  smallblock/.style={rectangle, draw, rounded corners, align=center, text width=1.7cm, font=\scriptsize},
+  arr/.style={-Latex}
+]
+\node[block] (speech) {Farmer speech query};
+\node[block, below=0.28cm of speech] (enc) {Speech encoder + retrieval adapter (\S III-B)};
+\node[block, below=0.28cm of enc] (dial) {Dialect-to-entity mapping (\S III-C)};
+\node[block, below=0.28cm of dial] (hyb) {Hybrid lexical + dense retrieval (\S III-D)};
+\node[block, below=0.28cm of hyb] (conf) {Confidence gate (\S III-E)};
+\node[smallblock, below=0.6cm of conf, xshift=-1.3cm] (esc) {Human expert escalation};
+\node[smallblock, below=0.6cm of conf, xshift=1.3cm] (gen) {Local LLM generation + TTS};
 
+\draw[arr] (speech) -- (enc);
+\draw[arr] (enc) -- (dial);
+\draw[arr] (dial) -- (hyb);
+\draw[arr] (hyb) -- (conf);
+\draw[arr] (conf) -- node[left,font=\tiny]{low conf.} (esc);
+\draw[arr] (conf) -- node[right,font=\tiny]{high conf.} (gen);
+\end{tikzpicture}
+\caption{Proposed pipeline. All stages except one-time adapter training (\S III-F) run fully offline on consumer-grade hardware.}
+\label{fig:architecture}
+\end{figure}
 
-\subsection{Impact of Knowledge Graphs on Retrieval Quality}
+\subsection{Speech-Native Retrieval Backbone}
+Following SpeechRAG \cite{min2025speechrag} and Google's S2R \cite{google2025s2r}, the pipeline fine-tunes a lightweight adapter that projects representations from a pretrained speech encoder --- wav2vec 2.0 \cite{baevski2020wav2vec}, HuBERT \cite{hsu2021hubert}, or a multilingual encoder such as SeamlessM4T \cite{barrault2023seamlessm4t} where the target dialect lacks dedicated pretraining data --- into the embedding space of a frozen text retriever, extending the dense-retrieval formulation of Karpukhin et al. \cite{karpukhin2020dpr} to operate on speech rather than text queries. This adapter is the only component in the pipeline permitted to use cloud GPU resources, and only once, at training time (contribution 4); at inference time it runs locally alongside the rest of the pipeline. Unlike the evaluations reported for SpeechRAG and S2R, the adapter here is trained and evaluated with explicit attention to two conditions neither prior system tested: queries containing domain-critical rare entities (pesticide, pest, and disease names) and queries spoken in dialectal or code-mixed variants of the target language, motivated by evidence that both conditions independently degrade ASR transcription accuracy \cite{benchmarkingasr2026,dialectmatters2026} and are expected to compound when they co-occur, consistent with the ``textless NLP'' premise that representations optimized for transcription accuracy are not necessarily optimal for downstream retrieval \cite{spidr2025}.
 
+\subsection{Dialect-to-Scientific-Entity Mapping Layer}
+Retrieval collapses if a normalized speech embedding still fails to align with a document indexed under standardized nomenclature. The mapping layer addresses this by bootstrapping a dialect-term-to-scientific-entity lexicon from existing public resources --- agricultural knowledge graphs such as Crop GraphRAG \cite{wu2026cropgraphrag}, named-entity resources such as AgCNER \cite{yao2024agcner}, and standards-level ontologies such as EPPO \cite{kgeditorial2023} --- rather than through new dialect speech collection, consistent with contribution 2. This follows the same motivation as the soft-prompt-tuning approach of Liu et al. \cite{liu2025colloquialpest}, which showed that conventional classifiers degrade substantially on farmers' colloquial symptom descriptions, and the keyword-injection strategy used in the Bengali cross-lingual RAG case study \cite{hossain2026bengalirag}; both operate on written text, whereas the mapping layer proposed here is designed to operate on the speech-embedding representation produced in Section III-B, since that system's own future-work discussion identifies dialect-aware normalization of spoken queries as unresolved. Two integration strategies are considered: a post-ASR text-normalization path, retained only as a fallback because it reintroduces a transcription dependency for this one layer, and an embedding-space mapping path that aligns dialect-term speech embeddings directly against the retriever's embedding space, preferred because it requires no transcription step anywhere in the pipeline.
 
-\subsection{Efficacy of Multi-Agent Filtering}
+\subsection{Hybrid Retrieval Strategy}
+Comparative retrieval studies show dense retrieval outperforming lexical retrieval on paraphrased queries with low lexical overlap, while lexical methods such as BM25 retain the advantage on exact, rare, domain-specific entities \cite{sultania2024hybridsearch} --- precisely the pesticide and disease name category this paper treats as safety-critical. The architecture therefore fuses lexical and dense signals rather than committing to either alone, so that a colloquial, paraphrased query and an exact rare-entity query are both served by the retrieval mode best suited to it. This choice is deliberately positioned against a naive ``speech embeddings beat keywords'' framing: since a purely dense speech-native retriever risks losing precisely the safety-critical query category to a simpler keyword baseline, hybrid retrieval is treated as the default backbone to be evaluated, not a strict either/or alternative to speech-native retrieval.
 
+\subsection{Confidence-Gated Escalation}
+Because an incorrect agricultural recommendation can damage a season's crop, the architecture inserts a confidence gate between retrieval and answer generation, following the case made for confidence-gated abstention in comparably high-stakes clinical and financial RAG deployments \cite{abstinence2025}. The gate combines closed-book signals (internal model confidence) and open-book signals (divergence between model behavior with and without retrieved context), following the taxonomy of Dependable RAG \cite{dependablerag2026}, rather than relying on a single score. This design choice is directly informed by a documented failure mode: naive entropy-based confidence signals have been shown to misfire in both directions, flagging correct, well-grounded answers as uncertain due to interactions between attention mechanisms and entropy computation \cite{intrygue2026}. Accordingly, the gate is treated as a component requiring empirical validation against labeled correct/incorrect examples (Section IV-E) rather than a mechanism assumed reliable by construction. Queries falling below the confidence threshold are escalated to a human expert rather than answered, mirroring the human-in-the-loop fallback already present in call-center-style deployments such as KrishokBondhu \cite{ameen2026krishokbondhu}.
 
-\subsection{Domain-Specific Accuracy: The Case of Scientific Data}
+\subsection{Offline Deployment Scoping}
+All pipeline stages other than the one-time speech-retrieval adapter training (Section III-B) are required to run without a live network connection, on consumer-grade, GPU-constrained hardware. This mirrors the deployment pattern already demonstrated for text-only offline agricultural RAG systems such as A.A.H.A.R. \cite{dubey2025aahar} and the Bengali cross-lingual RAG case study \cite{hossain2026bengalirag}, and for a vision-modality offline system in rural Tigray \cite{tigray2025plantdisease}, and is bounded by reported feasibility figures for quantized on-device language models --- 2--3 tokens/second for 4-bit Llama-3 8B on a smartphone with at least 6 GB RAM, with 8-bit variants requiring a discrete GPU with at least 8 GB VRAM for comparable throughput \cite{compactllm2026}. Whether these figures still hold once a speech encoder, adapter, dialect-mapping layer, and confidence gate are added on top of the language model is treated as an open question (RQ3) evaluated in Section IV, not an assumption carried over from text-only systems.
 
+\section{Experimental Protocol}
+
+\subsection{Overview}
+No experiments have yet been executed; this section specifies the protocol by which the architecture in Section III would be evaluated against RQ1--RQ4, so that the evaluation plan in Section V can be read as a set of falsifiable hypotheses rather than an assumed outcome.
+
+\subsection{Query Dataset Construction}
+The evaluation requires a query set stratified along two axes motivated in Sections I and III: standard-terminology versus dialectal/colloquial phrasing, and common versus domain-critical rare-entity queries (pesticide, pest, and disease names). Prior characterizations of real farmer helpline query volume and content \cite{godara2022querycount,godara2020sequentialpattern} inform the query distribution the dataset should approximate, so that the stratified test set is representative of actual query patterns rather than an artificially uniform sample. Where dedicated dialect speech resources exist, such as the RESPIN Chhattisgarhi corpus \cite{singh2023respin}, they are used directly; where the target dialect has no comparable resource, a small evaluation set is collected specifically for the rare-entity and dialectal strata, consistent with the constraint that no large new dialect speech corpus is collected for training (Section III-C).
+
+\subsection{Baselines and Conditions}
+Four retrieval conditions are compared under identical query sets, isolating the specific comparisons RQ1 and RQ4 require:
+
+\begin{enumerate}
+    \item \textbf{ASR-cascaded retrieval} --- a Whisper-based \cite{radford2023whisper} transcription step followed by text retrieval, representing the dominant existing design pattern (Farmer.Chat, KrishokBondhu, A.A.H.A.R., Krishi Sathi).
+    \item \textbf{Keyword-only (lexical) retrieval} --- BM25 over ASR transcripts, isolating lexical retrieval performance in the presence of transcription error.
+    \item \textbf{Dense semantic retrieval} --- text-embedding retrieval following the dense passage retrieval formulation \cite{karpukhin2020dpr}, applied both to ASR transcripts and, where applicable, to speech-native embeddings from Section III-B.
+    \item \textbf{Hybrid retrieval} --- the fused lexical-dense condition of Section III-D, evaluated both with and without the dialect-to-entity mapping layer of Section III-C, isolating the mapping layer's contribution (RQ2).
+\end{enumerate}
+
+All conditions retrieve from the same underlying knowledge base, constructed following the retrieval-augmented generation formulation of Lewis et al. \cite{lewis2020rag}, so that differences in measured accuracy are attributable to the retrieval mechanism rather than to differences in the underlying corpus.
+
+\subsection{Evaluation Metrics}
+Retrieval quality is measured with standard recall@$k$ and mean reciprocal rank, reported separately for the standard-terminology and dialectal/rare-entity strata rather than as a single aggregate figure, following the rationale that aggregate metrics can mask exactly the failure mode this paper targets --- the same rationale underlying the agriculture-weighted WER metric proposed for ASR evaluation \cite{benchmarkingasr2026}. End-to-end latency is measured from spoken query to delivered answer on the target consumer-hardware configuration (Section IV-F). Confidence-gate quality is measured separately from retrieval quality, via calibration error and via abstention precision/recall against a labeled set of known-correct and known-incorrect answers, directly addressing the INTRYGUE-documented risk that confidence signals can misfire in both directions \cite{intrygue2026}.
+
+\subsection{Confidence Gate Validation Protocol}
+Because a miscalibrated gate can be worse than no gate at all \cite{intrygue2026}, the gate is validated on a held-out labeled set before being used to report any end-to-end system result: candidate confidence signals (closed-book and open-book, per \cite{dependablerag2026}) are scored against ground-truth correctness labels, and a signal or combination of signals is adopted for the full pipeline only if it exceeds a pre-registered calibration threshold on this held-out set.
+
+\subsection{Hardware Target}
+All inference-time components (Sections III-B through III-E) are benchmarked on a single, explicitly stated consumer-hardware configuration --- a GPU-constrained laptop or mini-PC class device, consistent with the RAM/VRAM figures in \cite{compactllm2026} --- rather than left as an unspecified ``consumer-grade'' claim, so that the latency and accuracy figures reported in Section V are reproducible against a fixed target.
+
+\section{Evaluation Plan and Expected Outcomes}
+
+As the protocol in Section IV has not yet been executed, this section states, for each research question, the comparison that would answer it and the pattern of results that would confirm or disconfirm the corresponding hypothesis --- not observed data.
+
+\subsection{RQ1 --- Speech-Native Retrieval Under Dialect and Rare-Entity Conditions}
+\textbf{Hypothesis:} speech-native retrieval (Section III-B) matches or exceeds ASR-cascaded retrieval in aggregate, consistent with prior results for SpeechRAG and S2R \cite{min2025speechrag,google2025s2r}, but the size of that advantage is expected to \emph{grow} on the dialectal and rare-entity strata specifically, since those are exactly the conditions under which ASR transcription error concentrates \cite{benchmarkingasr2026,dialectmatters2026}. \textbf{Disconfirming pattern:} if the speech-native advantage shrinks or reverses on the dialectal/rare-entity strata relative to the standard-terminology stratum, this would indicate the adapter itself fails to generalize to dialect variation, motivating dialect-specific adapter fine-tuning as future work rather than confirming RQ1 as stated.
+
+\subsection{RQ2 --- Dialect-to-Entity Mapping Contribution}
+\textbf{Hypothesis:} hybrid retrieval with the mapping layer (Section III-C) outperforms hybrid retrieval without it specifically on the dialectal/colloquial query stratum, with little or no difference on the standard-terminology stratum, isolating the mapping layer's contribution to exactly the queries it targets. \textbf{Disconfirming pattern:} a uniform improvement across both strata would suggest the mapping layer is acting as a general retrieval-quality improvement rather than a dialect-specific one, which would still be a positive result but would not confirm RQ2 as a dialect-targeted claim.
+
+\subsection{RQ3 --- Offline Feasibility on Consumer Hardware}
+\textbf{Hypothesis:} the full pipeline meets a pre-specified latency budget (informed by the sub-2-second to sub-20-second range reported for text-only offline agricultural systems \cite{dubey2025aahar,hossain2026bengalirag}, adjusted upward for the added speech and mapping components) on the hardware target specified in Section IV-F, without a significant accuracy regression relative to a cloud-hosted configuration of the same pipeline. \textbf{Disconfirming pattern:} if latency exceeds the budget or accuracy regresses substantially under quantization, this would indicate the current architecture requires either further compression or a revised hardware target, directly answering RQ3 in the negative rather than leaving it unresolved.
+
+\subsection{RQ4 --- Hybrid Retrieval with Dialect Mapping vs.\ Either Alone}
+\textbf{Hypothesis:} hybrid retrieval combined with dialect mapping outperforms lexical-only and dense-only retrieval individually on the rare-entity stratum, where prior comparative work predicts lexical and dense methods trade off \cite{sultania2024hybridsearch}, confirming that neither method alone is sufficient once dialect variation and rare entities co-occur. \textbf{Disconfirming pattern:} if one retrieval mode alone matches hybrid performance even on the rare-entity stratum, this would indicate the hybrid fusion adds complexity without a corresponding accuracy benefit for this query population.
+
+\subsection{Threats to Validity}
+The evaluation plan above depends on dialect-stratified query data whose scale is inherently limited by the absence of large existing dialect speech resources for the target dialect (Section IV-B), which constrains statistical power on exactly the strata RQ1 and RQ2 depend on; this limitation, and mitigations such as bootstrapped or synthetic dialectal query augmentation, are discussed further in Section VI.
 
 \section{Conclusion}
 
-Conclusion will be here
+This paper has argued that no existing agricultural advisory system combines speech-native retrieval, dialect-to-scientific-entity mapping, confidence-gated escalation, and fully offline operation, despite each being independently established: speech-native retrieval has been shown to match or exceed ASR-cascaded retrieval in general-purpose settings \cite{min2025speechrag,google2025s2r}; colloquial-to-formal entity mapping has been shown to be necessary and tractable in text \cite{liu2025colloquialpest,hossain2026bengalirag}; confidence-gated abstention has been argued for in other high-stakes RAG domains \cite{abstinence2025}; and offline deployment has been demonstrated for text-based agricultural RAG specifically \cite{dubey2025aahar,hossain2026bengalirag}. Section III integrates these four components into a single pipeline, and Section IV and Section V specify how each of RQ1--RQ4 would be tested and what pattern of results would confirm or disconfirm each hypothesis.
+
+The principal limitation of the present paper is that it is a design and protocol contribution, not yet an empirical one: no component described in Section III has been implemented or evaluated at the time of writing, and the hypotheses in Section V are predictions to be tested rather than reported findings. This limitation is deliberate rather than incidental --- committing to a falsifiable protocol before running experiments is intended to guard against the kind of confirmation-driven evaluation that a system built and evaluated by the same process would otherwise risk, particularly for the confidence-gating component, where \cite{intrygue2026} shows that superficially reasonable confidence signals can fail silently.
+
+Future work is therefore the direct execution of Section IV: implementation of the speech-native retrieval adapter and dialect-mapping layer, construction of the dialect-stratified evaluation set described in Section IV-B, and empirical validation of the confidence gate against labeled data before any end-to-end system result is reported. Beyond executing this protocol, two extensions follow naturally from the synthesis discussion in Section II: first, extending the dialect-to-entity mapping layer beyond the single target dialect evaluated here, toward the many Indian dialects that, like the one targeted in this paper, presently have no dedicated speech or mapping resource \cite{dialectmatters2026,singh2023respin}; and second, examining whether the confidence-gating and offline-deployment components generalize to other high-stakes, low-connectivity domains --- clinical and financial advisory --- where confidence-gated RAG has been argued for but not, to this paper's knowledge, combined with speech-native retrieval either \cite{dependablerag2026,abstinence2025}.
 
 
 % \subsection{Abbreviations and Acronyms}\label{AA}
