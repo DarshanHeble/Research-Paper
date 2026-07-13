@@ -26,17 +26,24 @@ number from it anywhere else (including in the paper). The summary:
   measured, clean confirmation of the RQ2/RQ4 premise on this demo scale,
   with the caveat that it needs re-testing at a larger, messier KB scale.
 - Two honest negative/partial results worth knowing before reading further:
-  the trained speech-native adapter reaches 55.6% top-1 accuracy on its own
-  held-out split but ~0% on the differently-phrased eval set (a real
-  generalization gap, not a bug); and the confidence gate's open-book signal
-  turned out to carry almost no discriminative power in this run because the
-  templated answers quote their own retrieved passage verbatim (a concrete,
-  discovered instance of the `intrygue2026` warning that confidence signals
-  can look reasonable while being carried by only one input).
+  the trained speech-native adapter reaches 61.1% top-1 accuracy on its own
+  held-out split but ~2% (effectively chance) on the differently-phrased eval
+  set (a real generalization gap, not a bug); and the confidence gate's
+  open-book signal turned out to carry almost no discriminative power in this
+  run because the templated answers quote their own retrieved passage
+  verbatim (a concrete, discovered instance of the `intrygue2026` warning
+  that confidence signals can look reasonable while being carried by only one
+  input).
 - Real numbers are not the same as the paper's actual research findings —
   see `implementation/README.md`'s "central honesty caveat" section on why
   every audio-involving number here is measured on `espeak-ng` TTS synthesis,
   not recorded dialect speech, and should be read accordingly.
+- These numbers, and the whole prototype, have now been independently
+  reproduced end to end on a second machine (Arch Linux, same RTX 3050
+  Laptop 6GB GPU class) in a later session, with the same qualitative story
+  on every metric — see `implementation/README.md`'s "provenance note" at the
+  top of its Results section. `main.tex` Section VI now reports these numbers
+  directly in the paper itself, not just in this implementation doc.
 
 The rest of this file is the original architecture/build-order reference —
 still accurate as a description of intent, now cross-linked to what's
@@ -131,8 +138,9 @@ the speech embeddings and the dialect-mapped entities feed into.
    requirement is *for* catching.
 6. ~~Quantize and package the full pipeline~~ **Done for latency; not
    quantized** — `implementation/scripts/benchmark_latency.py` measures real
-   stage-by-stage latency on the actual RTX 3050 6GB laptop this was built
-   on (~1.48GB peak VRAM, all models loaded); the LLM (Qwen2.5-0.5B-Instruct)
+   stage-by-stage latency on an actual RTX 3050 6GB laptop (~1.4-1.5GB peak
+   VRAM, all models loaded, reproduced on two separate machines of this class);
+   the LLM (Qwen2.5-0.5B-Instruct)
    runs in fp16, not INT4/INT8-quantized — quantization itself is not yet
    implemented, so the `compactllm2026`-style throughput figures in
    `agents/components/offline-deployment.md` remain uncompared against a

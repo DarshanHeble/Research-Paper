@@ -26,26 +26,30 @@ for agricultural voice advisory in dialect-rich, low-resource settings:
 4. **Fully offline operation** on consumer-grade, GPU-constrained hardware.
 
 It poses four research questions (RQ1–RQ4, see `agents/paper.md`) and proposes
-an experimental protocol to answer them. The paper's own text (Section V/VI)
-does **not** claim real experimental results on the target dialect — that
-remains true and deliberate; do not fabricate numbers to fill that gap. What
-*does* now exist is a runnable software prototype of the architecture
-(`implementation/`, see below) that produces real measured numbers on small,
-honestly-labeled demo data — useful for stress-testing the mechanism, but not
-a substitute for the paper's own protocol run on real dialect data. See
-`agents/paper.md` and `implementation/README.md` for how each is meant to be
-read without conflating the two.
+an experimental protocol to answer them. **Section V's hypotheses remain
+unanswered on the target dialect** — no real target-dialect speech corpus
+exists, and that remains true and deliberate; do not fabricate numbers to
+fill that gap. What *does* now exist is a runnable software prototype of the
+architecture (`implementation/`, see below) that produces real measured
+numbers on small, honestly-labeled demo data, and **Section VI of `main.tex`
+itself now reports those numbers** — tables, a training curve, a gate
+calibration sweep, and a latency benchmark, explicitly framed as a
+demo-scale mechanism check distinct from Section V's still-open hypotheses,
+not as an execution of the paper's own protocol. See `agents/paper.md` and
+`implementation/README.md` for how each is meant to be read without
+conflating the two.
 
 ## Repository layout
 
 ```
-main.tex           IEEE conference paper source (compiles with IEEEtran)
-reference.bib      Bibliography (32 entries), with verification-status tags
-papers/            Local copies of every cited reference (PDF or .txt citation)
+paper/             Everything the paper itself needs to compile
+  main.tex             IEEE conference paper source (compiles with IEEEtran)
+  reference.bib        Bibliography (32 entries), with verification-status tags
+  pdfs/                Local copies of every cited reference (PDF or .txt citation)
 implementation/    Runnable prototype of the proposed system (see its README.md)
 agents/            This documentation set
-  paper.md              main.tex: structure, IEEE formatting rules, writing status
-  bibliography.md       reference.bib + papers/: verification keys, how to add refs
+  paper.md              paper/main.tex: structure, IEEE formatting rules, writing status
+  bibliography.md       paper/reference.bib + paper/pdfs/: verification keys, how to add refs
   implementation.md     The proposed system as software; status of the real prototype
   components/           One file per architecture component (deep dives + implementation status)
     speech-native-retrieval.md
@@ -59,7 +63,7 @@ agents/            This documentation set
 | Task | Read |
 |---|---|
 | Editing paper prose, LaTeX, citations, section structure | `agents/paper.md` |
-| Adding/verifying a reference, understanding `papers/` folder | `agents/bibliography.md` |
+| Adding/verifying a reference, understanding `paper/pdfs/` folder | `agents/bibliography.md` |
 | Running or extending the actual prototype | `implementation/README.md` first, then `agents/implementation.md` |
 | Deep-diving one of the four architecture pillars (design + implementation status) | `agents/components/*.md` |
 
@@ -79,4 +83,4 @@ agents/            This documentation set
   well-sourced — match that standard in new sections.
 - **Keep the four contributions and RQ1–RQ4 as the spine.** Every new section
   should visibly trace back to one or more of them.
-- Compile-check after edits: `pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex` (see `agents/paper.md` for details).
+- Compile-check after edits, from inside `paper/`: `pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex` (see `agents/paper.md` for details).

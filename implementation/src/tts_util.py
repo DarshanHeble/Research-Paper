@@ -19,42 +19,63 @@ audio as evidence about real dialectal speech performance -- that would require
 the real corpus this project does not have, exactly as flagged in the paper's
 own Section V/VI.
 
-espeak-ng itself: the `espeak-ng` binary was not preinstalled system-wide in
-this environment (only its runtime data/library packages were). Since
-passwordless sudo was not available to `apt install` it, the .deb was fetched
-with `apt-get download` (no root required for download) and the single binary
-extracted with `dpkg -x` into implementation/tools/espeak-ng -- no source was
-compiled, no system files were modified. It links against libespeak-ng.so.1 and
-the espeak-ng-data files, both already present system-wide in this environment
-via the `libespeak-ng1` / `espeak-ng-data` apt packages.
+espeak-ng itself was not preinstalled system-wide in either environment this
+project has been built in, and passwordless sudo was not available to install
+it system-wide in either. Two different no-root extraction methods were used
+depending on the host distro, both producing a self-contained binary+library+
+data tree under implementation/tools/ (no source compiled, no system files
+touched):
+  - Debian/Ubuntu host: `apt-get download` (no root required to download) the
+    espeak-ng .deb, extracted with `dpkg -x`.
+  - Arch Linux host: `pacman -Sp` (prints the mirror URL without installing)
+    for espeak-ng and its two link-time deps (pcaudiolib, libsonic), fetched
+    directly with `curl` and unpacked with `tar --zstd -x` into
+    implementation/tools/espeak-ng-dist/{bin,lib,espeak-ng-data}/. The binary
+    is run with LD_LIBRARY_PATH and ESPEAK_DATA_PATH pointed at that tree
+    (see below) so it needs no system-wide library or data files at all.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
 _TOOLS_DIR = Path(__file__).resolve().parents[1] / "tools"
-_ESPEAK_BIN = _TOOLS_DIR / "espeak-ng"
+_DIST_DIR = _TOOLS_DIR / "espeak-ng-dist"
+_ESPEAK_BIN = _DIST_DIR / "bin" / "espeak-ng"
+_ESPEAK_LIB = _DIST_DIR / "lib"
+_ESPEAK_DATA = _DIST_DIR / "espeak-ng-data"
+# Legacy single-binary layout (Debian/Ubuntu dpkg -x extraction), still
+# supported so this module works unmodified on either host this project has
+# run on -- see module docstring.
+_ESPEAK_BIN_LEGACY = _TOOLS_DIR / "espeak-ng"
 
 
 def synthesize(text: str, out_wav_path: str | Path, voice: str = "en", speed_wpm: int = 160) -> Path:
     """Synthesize `text` to a 22.05kHz mono WAV file at out_wav_path using espeak-ng.
 
-    Raises FileNotFoundError if the bundled espeak-ng binary is missing, and
-    subprocess.CalledProcessError if synthesis fails for some other reason
-    (e.g. missing espeak-ng-data on a machine other than the one this was built
-    on -- see the module docstring for how that data was obtained here).
+    Raises FileNotFoundError if no bundled espeak-ng binary is found, and
+    subprocess.CalledProcessError if synthesis fails for some other reason.
     """
     out_wav_path = Path(out_wav_path)
     out_wav_path.parent.mkdir(parents=True, exist_ok=True)
-    if not _ESPEAK_BIN.exists():
+
+    env = os.environ.copy()
+    if _ESPEAK_BIN.exists():
+        bin_path = _ESPEAK_BIN
+        env["LD_LIBRARY_PATH"] = f"{_ESPEAK_LIB}:{env.get('LD_LIBRARY_PATH', '')}"
+        env["ESPEAK_DATA_PATH"] = str(_ESPEAK_DATA)
+    elif _ESPEAK_BIN_LEGACY.exists():
+        bin_path = _ESPEAK_BIN_LEGACY
+    else:
         raise FileNotFoundError(
-            f"espeak-ng binary not found at {_ESPEAK_BIN}. See src/tts_util.py docstring "
-            "for how it was obtained in the reference environment (apt-get download + dpkg -x, "
-            "no root required); a plain `apt-get install espeak-ng` also works if you have sudo."
+            f"No espeak-ng binary found at {_ESPEAK_BIN} or {_ESPEAK_BIN_LEGACY}. "
+            "See src/tts_util.py docstring for how it was obtained in the reference "
+            "environments (no root required); a plain `apt-get install espeak-ng` / "
+            "`pacman -S espeak-ng` also works if you have sudo."
         )
-    cmd = [str(_ESPEAK_BIN), "-v", voice, "-s", str(speed_wpm), "-w", str(out_wav_path), text]
-    subprocess.run(cmd, check=True, capture_output=True)
+    cmd = [str(bin_path), "-v", voice, "-s", str(speed_wpm), "-w", str(out_wav_path), text]
+    subprocess.run(cmd, check=True, capture_output=True, env=env)
     return out_wav_path
 
 

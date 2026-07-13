@@ -1,7 +1,7 @@
 # Implementation — Speech-Native RAG for Agricultural Advisory (Prototype)
 
 This directory is a **best-effort, genuinely runnable software prototype** of
-the system proposed in `main.tex` and specified in `agents/implementation.md`
+the system proposed in `paper/main.tex` and specified in `agents/implementation.md`
 and `agents/components/*.md`. It is not a claim that the paper's research
 questions are answered — the paper itself says no experiments have been run
 yet (see `AGENTS.md`), and this prototype does not change that. What it *does*
@@ -17,11 +17,20 @@ summarizes and cross-references those notes, it doesn't replace them.
 
 ## Environment this was built and measured on
 
-- Python 3.12.3, Ubuntu (Pop!_OS), 12 cores, 15GB RAM.
-- GPU: NVIDIA RTX 3050 Laptop, 6GB VRAM — used as the actual latency-benchmark
-  target, per the paper's own "consumer-grade, GPU-constrained hardware"
-  framing (Section III-F). This is a real instance of that hardware class, not
-  a stand-in for it.
+This prototype has now been built and run end to end on two different
+machines, both with the same GPU class, which is itself a small piece of
+evidence for the "consumer-grade, GPU-constrained hardware" framing
+(Section III-F) not being a fragile, one-machine result:
+
+- **Original build**: Python 3.12.3, Ubuntu (Pop!_OS), 12 cores, 15GB RAM.
+- **Reproduction run** (this session): Python 3.12.13, Arch Linux, same host
+  class. Fresh venv, fresh model downloads, fresh training run, fresh
+  evaluation — every number in the Results section below is from this
+  reproduction run, not copy-pasted from the original build.
+- GPU (both machines): NVIDIA RTX 3050 Laptop, 6GB VRAM — used as the actual
+  latency-benchmark target, per the paper's own "consumer-grade,
+  GPU-constrained hardware" framing (Section III-F). This is a real instance
+  of that hardware class, not a stand-in for it.
 - `implementation/.venv` — an isolated venv, nothing installed system-wide.
 
 ## Setup
@@ -66,6 +75,21 @@ doesn't hit the same stall), and if that also fails, `src/pipeline.py` catches
 the exception and falls back to a deterministic templated answer — the
 pipeline never crashes for lack of an LLM, it just tells you (via
 `PipelineResult.answer_source`) which path actually produced the answer.
+
+This session's reproduction hit the same stalled-resumable-download pattern
+again, this time on a *different* file: `huggingface_hub`'s chunked
+downloader for `facebook/wav2vec2-base` (used by the speech-native adapter,
+not the LLM) stalled indefinitely partway through a secondary blob after
+~40 minutes with zero throughput on an otherwise-idle TCP connection, while
+`pytorch_model.bin` itself (the file actually needed to load the model) had
+already downloaded successfully in full. The fix was the same each time:
+kill the stalled process, delete the `.incomplete` blob and its orphaned
+snapshot directory from `~/.cache/huggingface/hub/`, and retry — the needed
+files were already cached, so the retry completed in seconds. This is now
+two independent occurrences of the same failure mode on two different
+models and two different machines, which is reasonably strong evidence it's
+a `huggingface_hub` resumable-download issue rather than a one-off fluke of
+either specific file or host.
 
 ### Train the speech-native adapter (one-time, ~20-30s on this GPU)
 
@@ -123,28 +147,52 @@ including the romanized Hindi/Bengali colloquial queries in
   genuine phonetic structure espeak's flat English-phoneme reading doesn't)
   or pessimistic (this at least demonstrates *a* systematic mismatch, and
   real accented dialect speech would still be mismatched, just differently).
-- `espeak-ng` itself was not preinstalled in the reference environment
-  (`espeak-ng-data`/`libespeak-ng1` were, the CLI front-end wasn't). Since
-  passwordless sudo wasn't available, the `.deb` was fetched with
-  `apt-get download` (no root needed to download) and the single binary
-  extracted with `dpkg -x` into `tools/espeak-ng` — no source compiled, no
-  system files touched. See `src/tts_util.py`'s docstring for the full story.
+- `espeak-ng` itself was not preinstalled in either reference environment this
+  project has been built in, and passwordless sudo wasn't available in
+  either. Two no-root extraction methods, both leaving a self-contained tree
+  under `tools/` (no source compiled, no system files touched):
+  - Original build (Ubuntu): `apt-get download` (no root needed to download)
+    the `.deb`, single binary extracted with `dpkg -x` into `tools/espeak-ng`,
+    relying on `espeak-ng-data`/`libespeak-ng1` already present system-wide.
+  - Reproduction run (Arch, this session): `pacman -Sp` (prints the mirror
+    URL without installing) for `espeak-ng` and its two link-time deps
+    (`pcaudiolib`, `libsonic`), fetched with `curl` and unpacked with
+    `tar --zstd -x` into `tools/espeak-ng-dist/{bin,lib,espeak-ng-data}/` —
+    fully self-contained, no system-wide espeak files needed at all, run with
+    `LD_LIBRARY_PATH`/`ESPEAK_DATA_PATH` pointed at that tree.
+  `src/tts_util.py` supports both layouts and picks whichever is present; see
+  its docstring for the full story.
 
-### A mid-session environment issue, disclosed rather than hidden
+### A mid-session environment issue from the original build (Ubuntu), not seen in the reproduction
 
-Partway through this build, an unattended `nvidia-driver` package upgrade on
-this machine updated the userspace driver library to `595.84` while the
-already-loaded kernel module stayed at `595.71.05`, breaking `nvidia-smi`/NVML
-for the rest of the session (no reboot or root access available to fix it
-mid-session). **`torch.cuda` compute itself kept working** — verified with a
-real on-GPU matmul producing a correct result, and every benchmark/eval run
-below completed on `cuda` — only the NVML-based monitoring calls
-(`nvidia-smi`, GPU-name-lookup-via-NVML) are affected. `scripts/benchmark_latency.py`
-prints this same note when you run it.
+Partway through the *original* build, an unattended `nvidia-driver` package
+upgrade on that machine updated the userspace driver library while the
+already-loaded kernel module stayed on an older version, breaking
+`nvidia-smi`/NVML for the rest of that session (no reboot or root access
+available to fix it mid-session). `torch.cuda` compute itself kept working
+throughout — verified with a real on-GPU matmul producing a correct result —
+only the NVML-based monitoring calls were affected. `scripts/benchmark_latency.py`
+used to print a hardcoded note about this on every run regardless of whether
+it was still true; that was a leftover from the original session baked into
+the script rather than a live check, and has been removed as part of this
+session's reproduction (`nvidia-smi` works normally on the Arch reproduction
+machine). The script now measures peak VRAM directly via
+`torch.cuda.max_memory_allocated()` instead of relying on `nvidia-smi` at all
+— see the latency results below.
 
 ---
 
 ## Results — real, measured, on this demo data (paste, not paraphrase)
+
+**Provenance note:** the numbers below are from the Arch Linux reproduction
+run performed in this session (fresh venv, fresh model downloads, fresh
+adapter training, fresh evaluation) — not copy-pasted from the original
+Ubuntu build. Where a number differs slightly from an earlier version of this
+file, that's genuine run-to-run variance (GPU non-determinism in cuDNN
+kernels, and — for baselines 5/6 below — `faster-whisper`/`wav2vec2` version
+drift between the two environments), not a transcription error; both runs
+tell the same qualitative story on every metric that matters for the paper's
+RQs.
 
 ### 1. Retrieval baselines (`python scripts/run_evaluation.py`), 50 stratified eval queries
 
@@ -157,8 +205,8 @@ and stratum:
 | 2. dense-only | 0.400 | 0.833 | 0.833 | 0.000 | 0.000 |
 | 3. hybrid, no dialect mapping | 0.460 | 0.917 | 1.000 | 0.000 | 0.000 |
 | 4. hybrid + dialect mapping | **0.780** | 0.917 | 1.000 | **0.615** | **0.615** |
-| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.380 | 0.583 | 1.000 | 0.000 | 0.000 |
-| 6. speech-native (trained adapter), no dialect mapping | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
+| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.400 | 0.583 | 1.000 | 0.077 | 0.000 |
+| 6. speech-native (trained adapter), no dialect mapping | 0.020 | 0.000 | 0.000 | 0.000 | 0.077 |
 
 **What this shows, honestly:**
 - **Dialect mapping is doing essentially all of the work on dialectal
@@ -168,22 +216,23 @@ and stratum:
   and also a sign that 42 KB passages with fairly distinct vocabulary is an
   easy regime for a lexicon-lookup layer; it would need re-testing at a
   larger, messier KB scale before trusting the same 0.615 number.
-- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.0
-  recall@1 on both dialectal strata, and worse than raw hybrid retrieval even
-  on standard-phrasing queries (0.583 vs. 0.917), because `faster-whisper`
-  "tiny" mangles even the *English* TTS audio somewhat (see
+- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.077 and
+  0.000 recall@1 on the two dialectal strata, and worse than raw hybrid
+  retrieval even on standard-phrasing queries (0.583 vs. 0.917), because
+  `faster-whisper` "tiny" mangles even the *English* TTS audio somewhat (see
   `data/asr_cascade_transcripts.json` for every transcript — e.g. query q001
-  "My rice field has hopperburn..." was transcribed as "My life feels first
-  hot women with yellowing and drying..."). Whisper "tiny" on
+  "My rice field has hopperburn with yellowing and drying at the base of the
+  tillers..." was transcribed as "My life feels first hot women with
+  yellowing and drying at the face of the t-run..."). Whisper "tiny" on
   robotic TTS audio is a harder condition than Whisper on natural human
   speech; this number should not be read as "Whisper is this bad in
   general," only that this specific tiny model + this specific synthetic
   audio pipeline is.
-- **Speech-native retrieval's recall@1 on the held-out eval set is ~0**, despite
-  the adapter clearly learning *something* (see below) — a real, and
-  important, negative result: the toy training signal does not generalize
-  to the eval set's different phrasing style. This is discussed in depth
-  below, not glossed over.
+- **Speech-native retrieval's recall@1 on the held-out eval set is 0.020
+  overall** (1/50, effectively chance), despite the adapter clearly learning
+  *something* (see below) — a real, and important, negative result: the toy
+  training signal does not generalize to the eval set's different phrasing
+  style. This is discussed in depth below, not glossed over.
 
 ### 2. Speech-native adapter training (`python -m src.speech_retrieval.train_adapter`)
 
@@ -192,33 +241,36 @@ and stratum:
       from eval_queries.jsonl -- see train_adapter.py docstring)
 ...
 [4/5] Training adapter for 100 epochs with in-batch InfoNCE contrastive loss...
-    epoch   1  train_loss=3.5034  val_top1_passage_acc=0.000
-    epoch  50  train_loss=0.2449  val_top1_passage_acc=0.389
-    epoch  90  train_loss=0.1664  val_top1_passage_acc=0.556
-    epoch 100  train_loss=0.0885  val_top1_passage_acc=0.500
-[5/5] Best checkpoint: epoch 87, val_top1_passage_acc=0.556 (chance level = 1/42 = 0.024)
-Total wall time: 19.5s
+    epoch   1  train_loss=3.5050  val_top1_passage_acc=0.000
+    epoch  50  train_loss=0.2842  val_top1_passage_acc=0.333
+    epoch  90  train_loss=0.1699  val_top1_passage_acc=0.444
+    epoch 100  train_loss=0.0888  val_top1_passage_acc=0.500
+[5/5] Best checkpoint: epoch 99, val_top1_passage_acc=0.611 (chance level = 1/42 = 0.024)
+Total wall time: 20.1s
 ```
 
 **The honest read:** on its OWN held-out validation split (18 examples, drawn
 from the same small set of auto-generated English templates used for
 training, e.g. *"What can I do about {entity} in {crop}?"*), the trained
-adapter retrieves the correct passage top-1 **55.6% of the time — 23x better
-than the 2.4% chance level for a 42-way retrieval problem.** That is a real,
-positive demonstration that the SpeechRAG/S2R-style mechanism (frozen speech
-encoder → small trained adapter → frozen text-retriever embedding space, no
-transcription) works end to end on this machine.
+adapter retrieves the correct passage top-1 **61.1% of the time — roughly 26x
+better than the 2.4% chance level for a 42-way retrieval problem.** (The
+original build's run landed at 55.6%/epoch 87 — same story, small
+run-to-run variance from GPU non-determinism given a fixed random seed.)
+That is a real, positive demonstration that the SpeechRAG/S2R-style mechanism
+(frozen speech encoder → small trained adapter → frozen text-retriever
+embedding space, no transcription) works end to end, reproducibly, across two
+different machines.
 
 But on `data/eval_queries.jsonl` — full natural-language symptom-description
 sentences and romanized Hindi/Bengali queries, a genuinely different phrasing
 distribution than the short template sentences it trained on — recall@1 drops
-to ~0.0 (see table above). **This is a real generalization gap, not a bug**,
-and it's exactly the kind of result the paper predicts is unresolved: a small
-synthetic/template training signal does not obviously transfer to realistic
-out-of-distribution phrasing or (much more importantly) real dialect speech,
-which is the actual open problem the paper names and does not claim to have
-solved. Don't read the 55.6% number as "the adapter works" without also
-reading the ~0% eval number right next to it.
+to 0.020 overall (see table above). **This is a real generalization gap, not
+a bug**, and it's exactly the kind of result the paper predicts is
+unresolved: a small synthetic/template training signal does not obviously
+transfer to realistic out-of-distribution phrasing or (much more importantly)
+real dialect speech, which is the actual open problem the paper names and
+does not claim to have solved. Don't read the 61.1% number as "the adapter
+works" without also reading the ~2% eval number right next to it.
 
 ### 3. Confidence gate validation (`python -m src.confidence.validate_gate`)
 
@@ -279,35 +331,40 @@ calibration curve.
 
 ```
 --- One-time model load latency ---
-bm25_retriever                                              1.5 ms
-dense_retriever (incl. MiniLM-L6-v2 load + KB encode)   10793.5 ms
-faster_whisper_tiny                                        541.7 ms
-wav2vec2_base + trained_adapter                           3048.9 ms
-qwen2.5-0.5b-instruct                                      654.3 ms
+bm25_retriever                                              1.4 ms
+dense_retriever (incl. MiniLM-L6-v2 load + KB encode)    8611.1 ms
+faster_whisper_tiny                                        453.3 ms
+wav2vec2_base + trained_adapter                           2194.4 ms
+qwen2.5-0.5b-instruct                                      695.0 ms
 
 --- Per-stage steady-state latency (text query path, n=20) ---
 dialect_mapping                            mean=   0.1ms  p95=   0.6ms
-hybrid_search (bm25+dense+fusion)          mean=   3.5ms  p95=   4.5ms
-confidence_gate.score                      mean=   0.0ms  p95=   0.0ms
-llm_generation (qwen2.5-0.5b, <=120 tok)   mean=1224.6ms  p95=1392.4ms
+hybrid_search (bm25+dense+fusion)          mean=   3.8ms  p95=   4.3ms
+confidence_gate.score                      mean=   0.0ms  p95=   0.1ms
+llm_generation (qwen2.5-0.5b, <=120 tok)   mean=1282.5ms  p95=1476.4ms
 
 --- asr_cascade audio path (n=20) ---
-whisper_tiny_transcription                 mean= 189.0ms  p95= 234.2ms
-asr_cascade_total                          mean= 194.9ms  p95= 240.4ms
+whisper_tiny_transcription                 mean= 212.8ms  p95= 288.3ms
+asr_cascade_total                          mean= 218.5ms  p95= 293.3ms
 
 --- speech_native audio path (n=20) ---
-speech_native_total (encode+retrieve)      mean=  40.3ms  p95= 135.9ms
+speech_native_total (encode+retrieve)      mean=  41.2ms  p95= 153.2ms
+
+Peak VRAM with every model loaded simultaneously so far in this process: 1.54 GB
 ```
 
-Peak VRAM with **every** model loaded simultaneously (dense retriever,
-Whisper tiny, wav2vec2+adapter, Qwen2.5-0.5B fp16) measured via
-`torch.cuda.max_memory_allocated()`: **~1.48 GB** — comfortably inside the 6GB
-budget with ~4.5GB headroom, on the actual RTX 3050 Laptop GPU this was built
-on.
+Peak VRAM (dense retriever, Whisper tiny, wav2vec2+adapter, Qwen2.5-0.5B
+fp16, all loaded, plus 20 queries of actual inference through every stage)
+measured via `torch.cuda.max_memory_allocated()`, now built into the script
+itself rather than reported separately: **1.54 GB** — comfortably inside the
+6GB budget with ~4.5GB headroom, on the actual RTX 3050 Laptop GPU this was
+benchmarked on. (The original build's more limited "just after loading, no
+generation yet" measurement was 1.48GB — consistent, small difference
+explained by that run not having pushed a generation batch through yet.)
 
 **Read on RQ3:** retrieval, dialect mapping, and the confidence gate are all
 sub-10ms and effectively free next to everything else. The dominant cost is
-LLM generation (~1.2s mean, capped at 120 new tokens, greedy decoding) — end
+LLM generation (~1.3s mean, capped at 120 new tokens, greedy decoding) — end
 to end this lands in roughly the same "sub-2-second" ballpark `dubey2025aahar`
 reports for a comparable offline agricultural LLM system, on comparable
 consumer hardware, which is at least consistent with (not proof of) RQ3's
@@ -320,14 +377,15 @@ passages is close to a best case for both.
 ### 5. Tests (`pytest tests/ -v`)
 
 ```
-24 passed, 5 warnings in ~41s
+24 passed, 3 warnings in 19.04s
 ```
 
 All 24 pass: 6 retrieval tests, 6 dialect-mapping tests, 6 confidence-gate
 tests, and 6 pipeline smoke tests (text, dialectal-text, low-confidence
-escalation, timing reporting, speech-native audio, ASR-cascade audio — the
-speech-native test auto-skips if `models/speech_adapter.pt` hasn't been
-trained yet in your environment).
+escalation, timing reporting, speech-native audio, ASR-cascade audio). In
+this reproduction run `models/speech_adapter.pt` was trained first, so all 24
+ran for real, including the speech-native smoke test (it auto-skips only if
+no trained adapter is present).
 
 ---
 

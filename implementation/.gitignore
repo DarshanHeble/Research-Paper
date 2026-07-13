@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 models/
 data/synthetic_audio/
+tools/espeak-ng-dist/

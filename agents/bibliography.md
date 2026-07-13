@@ -1,9 +1,9 @@
-# `reference.bib` and `papers/` — Bibliography Component
+# `paper/reference.bib` and `paper/pdfs/` — Bibliography Component
 
 ## Purpose
 
-`reference.bib` is the single source of truth for citations used in
-`main.tex`. `papers/` holds a local copy of every entry — a PDF where one is
+`paper/reference.bib` is the single source of truth for citations used in
+`paper/main.tex`. `paper/pdfs/` holds a local copy of every entry — a PDF where one is
 freely obtainable, otherwise a `.txt` citation stub — so the work doesn't
 depend on live internet access to re-verify what was cited.
 
@@ -27,29 +27,29 @@ explaining what's missing.
 - `min2025speechrag` — DOI suffix was inferred from the Xplore document ID
   rather than pulled from Xplore's own "Cite This" button; still verify
   before submission. The underlying preprint is now confirmed at
-  arXiv:2412.16500 (`papers/min2025speechrag.pdf`, checked against the PDF's
+  arXiv:2412.16500 (`paper/pdfs/min2025speechrag.pdf`, checked against the PDF's
   own title/author header) and the `.bib` entry's `eprint` field has been
   updated accordingly.
 - `singh2023respin` — author list is `Singh, Aditya and others`; the full
   author list from the Springer record should replace this before
   submission. No open-access PDF found (Springer paywalled) —
-  `papers/singh2023respin.txt` has the citation stub.
+  `paper/pdfs/singh2023respin.txt` has the citation stub.
 - `kgeditorial2023` — full author list, journal name, and volume are
   unconfirmed. Locate the primary source (not just the PMC secondary
   reference) or consider dropping the citation if it can't be confirmed.
-  No reliable URL was found — `papers/kgeditorial2023.txt` documents this.
+  No reliable URL was found — `paper/pdfs/kgeditorial2023.txt` documents this.
 - `google2025s2r` — previously had no author list or URL in the `.bib`.
   Both have now been confirmed (Ehsan Variani and Michael Riley, Google
   Research Blog, published 7 Oct. 2025,
   research.google/blog/speech-to-retrieval-s2r-a-new-approach-to-voice-search)
   and the `.bib` entry updated; full article text is saved in
-  `papers/google2025s2r.txt` since blog posts have no PDF.
-- Any entry currently backed only by a `papers/<key>.txt` fallback (see
+  `paper/pdfs/google2025s2r.txt` since blog posts have no PDF.
+- Any entry currently backed only by a `paper/pdfs/<key>.txt` fallback (see
   below) instead of a real PDF — the citation itself may still be fine for
   submission (paywalled venues are normal to cite), but don't assume a PDF
   exists locally.
 
-## `papers/` folder convention
+## `paper/pdfs/` folder convention
 
 One file per bibkey, named `<bibkey>.pdf` or `<bibkey>.txt` — the key matches
 the `@entrytype{key, ...}` identifier in `reference.bib` exactly, so the two
@@ -76,8 +76,8 @@ don't try to defeat paywalls to "complete" the set.
 
 1. Add the BibTeX entry to `reference.bib` in the right section (grouped by
    verification status, matching the existing file's organization).
-2. Fetch/save the paper into `papers/<key>.pdf` if open access, else write
-   `papers/<key>.txt` in the format above.
+2. Fetch/save the paper into `paper/pdfs/<key>.pdf` if open access, else write
+   `paper/pdfs/<key>.txt` in the format above.
 3. Cite it in `main.tex` with `\cite{key}` and make sure the surrounding
    prose actually supports the claim being attributed to it — don't cite
    speculatively.

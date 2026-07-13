@@ -11,14 +11,17 @@ A real, working version of this mechanism exists at
 — a frozen wav2vec2-base encoder feeding a small trained MLP adapter into the
 same embedding space as the dense text retriever, trained with an in-batch
 InfoNCE contrastive loss. It trains in ~20s on a consumer GPU (RTX 3050 6GB)
-and reaches 55.6% top-1 accuracy on its own held-out validation split (vs.
-2.4% chance for 42-way retrieval) — real evidence the SpeechRAG/S2R-style
+and reaches 55.6-61.1% top-1 accuracy on its own held-out validation split
+across two independent training runs on two machines (vs. 2.4% chance for
+42-way retrieval) — real, reproduced evidence the SpeechRAG/S2R-style
 mechanism works end to end on this hardware. It does **not** generalize to
 `implementation/data/eval_queries.jsonl`'s differently-phrased queries
-(~0% recall@1 there) — a real, reported generalization gap, not a bug, and
-not a resolution of RQ1: there is still no real target-dialect speech data to
-train or evaluate on, so RQ1 as the paper poses it remains open. See
-`implementation/README.md` §2 for the full numbers and discussion.
+(0-2% recall@1 there, i.e. effectively chance, in both runs) — a real,
+reported generalization gap, not a bug, and not a resolution of RQ1: there is
+still no real target-dialect speech data to train or evaluate on, so RQ1 as
+the paper poses it remains open. See `implementation/README.md` §2 for the
+full numbers and discussion, and `main.tex` Section VI-D for the paper's own
+report of this result.
 
 ## What it is
 
@@ -28,7 +31,7 @@ removes the specific failure mode where ASR mis-transcribes a rare,
 domain-critical term (pesticide/pest/disease name), which then propagates
 into a bad retrieval and a bad answer.
 
-## Prior art this builds on (all in `reference.bib` / `papers/`)
+## Prior art this builds on (all in `paper/reference.bib` / `paper/pdfs/`)
 
 - **SpeechRAG** (`min2025speechrag`, ICASSP 2025, Amazon) — fine-tunes an
   adapter projecting speech-encoder representations into the embedding space

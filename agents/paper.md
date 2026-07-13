@@ -59,8 +59,9 @@ later in the paper should be traceable to one of these four.
 | II | Literature Review | **Done.** 8 subsections: AI-driven agri advisory, speech processing for low-resource Indic dialects, speech-native retrieval, retrieval strategy (keyword/dense/hybrid), dialect-aware KR, confidence estimation, offline/edge deployment, synthesis. Well-cited — treat as the citation-density bar for new sections. |
 | III | Proposed Architecture | Drafted — see below. |
 | IV | Experimental Protocol / Methodology | Drafted — see below. |
-| V | Evaluation Plan / Expected Outcomes | Drafted — deliberately **not** a "Results" section with real numbers (none exist yet). Framed as hypotheses tied to RQ1–4 plus the metrics/protocol that would test them. |
-| VI | Conclusion | Drafted — summary, honest limitations (no experiments run), future work. |
+| V | Evaluation Plan / Expected Outcomes | Drafted — deliberately **not** a "Results" section with real numbers on the target dialect (that data doesn't exist). Framed as hypotheses tied to RQ1–4 plus the metrics/protocol that would test them. Still open — Section VI does not resolve these. |
+| VI | Prototype Implementation and Preliminary Measurements | **Done, with real numbers.** Reports actual measured results from `implementation/` (retrieval recall@1 table, adapter training curve, confidence-gate calibration/threshold table, latency benchmark), explicitly scoped as a demo-scale mechanism check on synthetic-TTS audio, distinct from Section V's still-open hypotheses on real dialect data. See `agents/implementation.md` and `implementation/README.md` for the source of every number here — never edit a number in this section without re-deriving it from an actual run. |
+| VII | Conclusion | Drafted — summary, honest limitations (RQ1–4 still open on target dialect despite the Section VI prototype), future work updated to reference concrete prototype findings (adapter generalization gap, gate signal weakness, embedding-space dialect mapping, quantization). |
 
 ### Important structural correction made
 
@@ -93,7 +94,10 @@ future edits, fix the mismatch — don't leave both inconsistent.
 
 ## Compiling
 
+Run from inside `paper/` (where `main.tex` and `reference.bib` now live):
+
 ```bash
+cd paper
 pdflatex main.tex
 bibtex main
 pdflatex main.tex

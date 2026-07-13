@@ -71,13 +71,8 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device under test: {device}"
           f"{' (' + torch.cuda.get_device_name(0) + ')' if device == 'cuda' else ''}")
-    print("NOTE: mid-session, this machine's NVML/nvidia-smi monitoring broke due to an "
-          "unattended nvidia-driver package upgrade changing the userspace library version "
-          "without the loaded kernel module being reloaded (a pre-existing environment issue, "
-          "not caused by this code). torch.cuda compute itself was verified still functional "
-          "(a real matmul on-device was run and produced a correct result) -- only nvidia-smi's "
-          "monitoring calls are affected, so latency numbers below are still real GPU numbers, "
-          "just without the usual nvidia-smi utilization/memory sidebar.\n")
+    if device == "cuda":
+        torch.cuda.reset_peak_memory_stats()
 
     load_times = {}
     from src.retrieval.bm25_retriever import BM25Retriever
@@ -199,6 +194,10 @@ def main():
     if speech_retriever is not None:
         print_summary("speech_native mode (encode+retrieve; excl. gen/gate, see above)",
                       summarize(t_speech_total))
+
+    if device == "cuda":
+        peak_gb = torch.cuda.max_memory_allocated() / (1024 ** 3)
+        print(f"\nPeak VRAM with every model loaded simultaneously so far in this process: {peak_gb:.2f} GB")
 
     print("\nAll numbers above are real measurements on this machine (RTX 3050 Laptop, 6GB VRAM) "
           "for this demo-scale KB (42 passages) -- retrieval-stage latency in particular should NOT "
