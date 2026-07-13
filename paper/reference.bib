@@ -2,7 +2,11 @@
 % BibTeX references for: Speech-Native RAG for Agricultural Advisory
 % Verified against IEEE Xplore, ACL Anthology, NeurIPS Proceedings,
 % ScienceDirect (Elsevier), Nature Scientific Data, and Frontiers.
-% Last updated: 1 July 2026. Revision 5 -- all "author list not resolved"
+% Last updated: 13 July 2026. Revision 6 -- the three remaining
+% verify-before-submission items (min2025speechrag DOI, singh2023respin
+% author list, kgeditorial2023 full citation) independently confirmed via
+% the CrossRef API and Frontiers full text; kgeditorial2023 reclassified
+% [UNVERIFIED] -> [VERIFIED]. Revision 5 -- all "author list not resolved"
 % note fields removed; missing author lists filled in from arXiv abstract
 % pages. Notes retained only where they carry structural information
 % (pending Xplore record, DOI-suffix caveat, unverified venue, etc.).
@@ -106,9 +110,9 @@
 
 % ---------------------------------------------------------------------------
 % [VERIFIED] ICASSP 2025, Hyderabad, India
-% IEEE Xplore document 10888900 confirmed.
-% DOI suffix follows ICASSP49660.2025.<docID> pattern -- verify via
-% Xplore "Cite This" button before final submission.
+% DOI confirmed via CrossRef API (api.crossref.org/works/10.1109/icassp49660.
+% 2025.10888900) on 13 July 2026: title, all six authors, and publication
+% date (2025-04-06) match exactly. No longer pending -- fully verified.
 % ---------------------------------------------------------------------------
 @inproceedings{min2025speechrag,
   title     = {Speech Retrieval-Augmented Generation without Automatic
@@ -124,8 +128,7 @@
   eprint    = {2412.16500},
   archivePrefix = {arXiv},
   note      = {Preprint confirmed at arXiv:2412.16500 (matches title/authors
-               exactly). DOI suffix inferred from Xplore document ID; verify
-               via Cite-This on ieeexplore.ieee.org/document/10888900/}
+               exactly); DOI independently confirmed via CrossRef, 13 July 2026}
 }
 
 % ---------------------------------------------------------------------------
@@ -191,18 +194,27 @@
 
 % ---------------------------------------------------------------------------
 % [VERIFIED] SPECOM 2023, Springer LNCS vol. 14339 (Scopus)
+% Full 18-author list and DOI confirmed via CrossRef API
+% (api.crossref.org/works/10.1007/978-3-031-48312-7_14) on 13 July 2026.
 % ---------------------------------------------------------------------------
 @inproceedings{singh2023respin,
   title     = {An {ASR} Corpus in Chhattisgarhi, a Low Resource Indian
                Language},
-  author    = {Singh, Aditya and others},
+  author    = {Singh, Abhayjeet and Mehta, Arjun Singh and Khuraishi, K. S. Ashish
+               and Deekshitha, G. and Date, Gauri and Nanavati, Jai and
+               Bandekar, Jesuraja and Basumatary, Karnalius and Karthika, P.
+               and Badiger, Sandhya and Udupa, Sathvik and Kumar, Saurabh and
+               Ghosh, Prasanta Kumar and Prashanthi, V. and Pai, Priyanka and
+               Nanavati, Raoul and Mora, Sai Praneeth Reddy and Raghavan, Srinivasa},
   booktitle = {Speech and Computer (SPECOM 2023)},
   series    = {Lecture Notes in Computer Science},
   volume    = {14339},
   publisher = {Springer},
+  address   = {Cham},
   year      = {2023},
-  note      = {Part of the RESPIN dialect speech-data initiative; verify
-               full author list against the Springer record}
+  pages     = {173--181},
+  doi       = {10.1007/978-3-031-48312-7\_14},
+  note      = {Part of the RESPIN dialect speech-data initiative}
 }
 
 
@@ -434,18 +446,22 @@
 }
 
 
-% ============================================================================
-% [UNVERIFIED] Secondary-source identification only; not independently
-% confirmed. Verify before submission.
-% ============================================================================
-
-@misc{kgeditorial2023,
-  title = {Editorial: Knowledge Graph Technologies: The Next Frontier of
-           the Food, Agriculture, and Water Domains},
-  year  = {2023},
-  note  = {Identified via PMC secondary reference; full author list,
-           journal name and volume not independently confirmed -- verify
-           before submission}
+% ---------------------------------------------------------------------------
+% [VERIFIED] Frontiers in Artificial Intelligence (confirmed via Frontiers
+% full-text page and PMC record, 13 July 2026). Reclassified from
+% [UNVERIFIED] -- full author list, volume, article number, and DOI now
+% independently confirmed.
+% ---------------------------------------------------------------------------
+@article{kgeditorial2023,
+  title   = {Editorial: Knowledge Graph Technologies: The Next Frontier of
+             the Food, Agriculture, and Water Domains},
+  author  = {Roussey, Catherine and Gu{\'e}ret, Christophe and
+             Laporte, Marie-Ang{\'e}lique},
+  journal = {Frontiers in Artificial Intelligence},
+  volume  = {6},
+  pages   = {1319844},
+  year    = {2023},
+  doi     = {10.3389/frai.2023.1319844}
 }
 
 

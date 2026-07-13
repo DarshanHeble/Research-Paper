@@ -80,11 +80,12 @@ future edits, fix the mismatch — don't leave both inconsistent.
 
 - Numbered citations via `\cite{key}`, numeric/bracketed in output — never
   switch to author-year in-text.
-- Section headings: Roman numeral + Title Case or ALL CAPS, matching the
-  existing pattern (`\section{Introduction}`, `\section{LITERATURE REVIEW}` —
-  the existing file is inconsistent in casing; prefer Title Case going
-  forward for new sections and don't "fix" old ones without checking it
-  doesn't break look consistency across the whole paper in one pass).
+- Section headings: Roman numeral + Title Case, matching the existing
+  pattern (`\section{Introduction}`, `\section{Literature Review}`, etc.).
+  This was inconsistent (`\section{LITERATURE REVIEW}` was ALL CAPS while
+  every other section was Title Case) until a full-document pass fixed it
+  on 13 July 2026 — all seven sections are now Title Case. Keep it that way
+  for any new section.
 - Abstract: single paragraph, no citations inside it (IEEE convention —
   currently followed correctly).
 - `\begin{IEEEkeywords}...\end{IEEEkeywords}` block right after the abstract.

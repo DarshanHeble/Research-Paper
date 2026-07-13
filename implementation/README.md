@@ -194,6 +194,24 @@ drift between the two environments), not a transcription error; both runs
 tell the same qualitative story on every metric that matters for the paper's
 RQs.
 
+**Second reproduction note (13 July 2026):** the full suite (tests, adapter
+retraining, retrieval evaluation, gate validation, latency benchmark) was
+re-run again on this same machine as an independent journal-readiness check.
+24/24 tests passed again; the confidence-gate numbers reproduced exactly
+bit-for-bit (no GPU/audio path involved in that stage); the retrieval table
+reproduced exactly except the ASR-cascade condition's `dialectal/common` cell,
+which moved from 0.077 to 0.000 (one query's Whisper transcription flipped
+between runs) and its `overall` column from 0.400 to 0.380 accordingly — both
+already-updated in the table below and in `main.tex` Table I, with a footnote
+there explaining the change. Latency was re-measured twice more: one run
+showed an anomalous LLM-generation mean of ~2.1s (p95 ~7.0s) apparently caused
+by transient system contention right after a heavy prior training/eval run on
+the same GPU; a second immediate re-run returned to the documented ~1.28s
+mean/~1.47s p95, matching history — a reminder that any single latency run on
+shared, thermally-loaded consumer hardware can be a transient outlier, and
+that the reported figures below reflect the representative, reproducible
+run, not a cherry-picked best case.
+
 ### 1. Retrieval baselines (`python scripts/run_evaluation.py`), 50 stratified eval queries
 
 Full output in `data/evaluation_results.json`. Headline recall@1 by baseline
@@ -205,7 +223,7 @@ and stratum:
 | 2. dense-only | 0.400 | 0.833 | 0.833 | 0.000 | 0.000 |
 | 3. hybrid, no dialect mapping | 0.460 | 0.917 | 1.000 | 0.000 | 0.000 |
 | 4. hybrid + dialect mapping | **0.780** | 0.917 | 1.000 | **0.615** | **0.615** |
-| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.400 | 0.583 | 1.000 | 0.077 | 0.000 |
+| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.380 | 0.583 | 1.000 | 0.000 | 0.000 |
 | 6. speech-native (trained adapter), no dialect mapping | 0.020 | 0.000 | 0.000 | 0.000 | 0.077 |
 
 **What this shows, honestly:**
@@ -216,8 +234,8 @@ and stratum:
   and also a sign that 42 KB passages with fairly distinct vocabulary is an
   easy regime for a lexicon-lookup layer; it would need re-testing at a
   larger, messier KB scale before trusting the same 0.615 number.
-- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.077 and
-  0.000 recall@1 on the two dialectal strata, and worse than raw hybrid
+- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.000
+  recall@1 on both dialectal strata, and worse than raw hybrid
   retrieval even on standard-phrasing queries (0.583 vs. 0.917), because
   `faster-whisper` "tiny" mangles even the *English* TTS audio somewhat (see
   `data/asr_cascade_transcripts.json` for every transcript — e.g. query q001

@@ -24,20 +24,28 @@ explaining what's missing.
 
 ## Entries requiring attention before final submission
 
-- `min2025speechrag` — DOI suffix was inferred from the Xplore document ID
-  rather than pulled from Xplore's own "Cite This" button; still verify
-  before submission. The underlying preprint is now confirmed at
-  arXiv:2412.16500 (`paper/pdfs/min2025speechrag.pdf`, checked against the PDF's
-  own title/author header) and the `.bib` entry's `eprint` field has been
-  updated accordingly.
-- `singh2023respin` — author list is `Singh, Aditya and others`; the full
-  author list from the Springer record should replace this before
-  submission. No open-access PDF found (Springer paywalled) —
-  `paper/pdfs/singh2023respin.txt` has the citation stub.
-- `kgeditorial2023` — full author list, journal name, and volume are
-  unconfirmed. Locate the primary source (not just the PMC secondary
-  reference) or consider dropping the citation if it can't be confirmed.
-  No reliable URL was found — `paper/pdfs/kgeditorial2023.txt` documents this.
+As of 13 July 2026, all previously-open verification items have been resolved
+via CrossRef API / Frontiers full-text lookups (not just secondary sources),
+and `reference.bib`'s status tags and notes updated accordingly:
+
+- `min2025speechrag` — **Resolved.** DOI `10.1109/ICASSP49660.2025.10888900`
+  independently confirmed via the CrossRef API (title, all six authors, and
+  publication date 2025-04-06 match exactly), not just inferred from the
+  Xplore document ID as before. Preprint cross-check at arXiv:2412.16500
+  (`paper/pdfs/min2025speechrag.pdf`) still stands.
+- `singh2023respin` — **Resolved.** Full 18-author list and DOI
+  (`10.1007/978-3-031-48312-7_14`) confirmed via CrossRef API, replacing the
+  `Singh, Aditya and others` placeholder. No open-access PDF found (Springer
+  paywalled) — `paper/pdfs/singh2023respin.txt` still has the citation stub;
+  that's expected, not a gap.
+- `kgeditorial2023` — **Resolved and reclassified from `[UNVERIFIED]` to
+  `[VERIFIED]`.** Full author list (Roussey, Guéret, Laporte), journal
+  (Frontiers in Artificial Intelligence, vol. 6, article 1319844), and DOI
+  (`10.3389/frai.2023.1319844`) confirmed directly from the Frontiers
+  full-text page, not just the PMC secondary reference. Since it's open
+  access, the real PDF has been fetched to `paper/pdfs/kgeditorial2023.pdf`
+  (verified by extracting its text and matching the DOI/author header),
+  replacing the old `.txt` stub.
 - `google2025s2r` — previously had no author list or URL in the `.bib`.
   Both have now been confirmed (Ehsan Variani and Michael Riley, Google
   Research Blog, published 7 Oct. 2025,
