@@ -1,0 +1,10 @@
+Title: Empowering farmers with artificial intelligence: a retrieval-augmented generation based large language model advisory framework
+Authors: Shreeram Sawant, Rahul Nair, Siddharth Hariharan
+Venue/Year: Journal of Agricultural Engineering, vol. 57, no. 2, 2026
+DOI/URL: 10.4081/jae.2026.1908 (confirmed via CrossRef API, 13 July 2026)
+Status: Open-access journal (PAGEPress), but the article's OJS galley links
+  resolve to HTML wrapper pages rather than a direct PDF URL that could be
+  fetched programmatically. Bibliographic details independently confirmed via
+  CrossRef; full text not mirrored here. Fetch manually from
+  https://www.agroengineering.org/jae/article/view/1908 before submission if
+  a local PDF copy is desired.

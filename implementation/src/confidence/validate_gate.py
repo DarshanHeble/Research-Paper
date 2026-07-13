@@ -21,6 +21,7 @@ explicitly in the printed output too, not just here.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -30,13 +31,12 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from src.confidence.gate import ConfidenceGate  # noqa: E402
 
-LABELS_PATH = REPO_ROOT / "data" / "confidence_labels.jsonl"
 KB_PATH = REPO_ROOT / "data" / "kb.json"
 
 
-def load_labels() -> list[dict]:
+def load_labels(labels_path: Path) -> list[dict]:
     rows = []
-    with open(LABELS_PATH, encoding="utf-8") as f:
+    with open(labels_path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -112,15 +112,23 @@ def threshold_sweep(scored_rows: list[dict], thresholds: list[float]) -> list[di
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--labels", default=str(REPO_ROOT / "data" / "confidence_labels.jsonl"),
+                         help="Path to the labels JSONL to validate against "
+                              "(default: data/confidence_labels.jsonl, the templated-answer set; "
+                              "pass data/confidence_labels_llm.jsonl for the real-LLM-answer variant).")
+    args = parser.parse_args()
+    labels_path = Path(args.labels)
+
     gate = ConfidenceGate(threshold=0.5)  # threshold itself is swept below; this instance is for scoring only
-    rows = load_labels()
+    rows = load_labels(labels_path)
     kb_by_id = load_kb_by_id()
     scored = compute_confidences(rows, kb_by_id, gate)
 
     n = len(scored)
     n_correct = sum(1 for r in scored if r["correct"])
     always_answer_baseline_acc = n_correct / n
-    print(f"Loaded {n} labeled examples from {LABELS_PATH.name} "
+    print(f"Loaded {n} labeled examples from {labels_path.name} "
           f"({n_correct} correct / {n - n_correct} incorrect at top-1)")
     print(f"'Always answer' baseline accuracy (no gate at all): {always_answer_baseline_acc:.3f}\n")
 
@@ -131,17 +139,33 @@ def main():
           f"mean={sum(margins)/n:.3f}")
     print(f"open-book grounding_overlap:   min={min(overlaps):.3f} max={max(overlaps):.3f} "
           f"mean={sum(overlaps)/n:.3f}")
+    llm_examples = sum(1 for r in rows if r.get("answer_source") == "llm")
     if max(overlaps) - min(overlaps) < 0.15:
-        print("NOTE: grounding_overlap barely varies across examples in this run. This is an "
-              "expected artifact when answer_source='template' (build_confidence_labels.py's "
-              "default): the templated answer literally quotes its own top1 passage, so it is "
-              "'grounded' by construction even when that passage is the WRONG one -- the "
-              "open-book signal can only catch a generator drifting from its context, not a "
-              "retriever handing the generator the wrong context. Almost all of the gate's "
-              "discriminative power below is therefore coming from retrieval_margin, not "
-              "grounding_overlap. A real LLM-generation path (src/generation/llm_generator.py) "
-              "would be a more meaningful test of the open-book signal -- documented as a "
-              "known limitation of this validation, not hidden.\n")
+        if llm_examples == 0:
+            print("NOTE: grounding_overlap barely varies across examples in this run. This is an "
+                  "expected artifact when answer_source='template' (build_confidence_labels.py's "
+                  "default): the templated answer literally quotes its own top1 passage, so it is "
+                  "'grounded' by construction even when that passage is the WRONG one -- the "
+                  "open-book signal can only catch a generator drifting from its context, not a "
+                  "retriever handing the generator the wrong context. Almost all of the gate's "
+                  "discriminative power below is therefore coming from retrieval_margin, not "
+                  "grounding_overlap. Re-run with data/confidence_labels_llm.jsonl "
+                  "(build_confidence_labels.py --llm) for a more meaningful test of the open-book "
+                  "signal against real, non-template-quoting answers -- documented as a known "
+                  "limitation of this particular labels file, not hidden.\n")
+        else:
+            print("NOTE: grounding_overlap still barely varies across examples in this run, EVEN "
+                  "THOUGH these are real LLM-generated answers (not template quotes). This means the "
+                  "low-variance finding was not merely a template-quoting artifact -- the LLM's "
+                  "grounded-generation prompting (src/generation/llm_generator.py's PROMPT_TEMPLATE) "
+                  "apparently keeps lexical overlap with the retrieved passage high regardless of "
+                  "whether that passage actually answers the query, so this simple lexical-overlap "
+                  "open-book signal may need a different formulation (e.g. semantic entailment rather "
+                  "than word overlap) to actually diverge from correctness. Report this as a further, "
+                  "deeper-than-expected limitation, not a fixed problem.\n")
+    elif llm_examples > 0:
+        print("grounding_overlap now shows real variance against these LLM-generated answers -- "
+              "unlike the templated-answer run, the open-book signal is not trivially saturated here.\n")
 
     print("--- Calibration (5 confidence bins: mean predicted confidence vs. actual accuracy) ---")
     ece, bin_reports = expected_calibration_error(scored, n_bins=5)
@@ -169,7 +193,7 @@ def main():
                 and (best_row is None or s["accuracy_if_answered"] > best_row["accuracy_if_answered"])):
             best_row = s
 
-    print(f"\n--- Verdict (against data/confidence_labels.jsonl, n={n}; treat as directional, not precise) ---")
+    print(f"\n--- Verdict (against {labels_path.name}, n={n}; treat as directional, not precise) ---")
     if best_row is not None and best_row["accuracy_if_answered"] > always_answer_baseline_acc:
         margin = best_row["accuracy_if_answered"] - always_answer_baseline_acc
         print(f"PASSES the minimal bar: at threshold={best_row['threshold']:.1f}, accuracy-if-answered="
@@ -186,10 +210,12 @@ def main():
           "rather than trusted by construction -- a 50-example demo set is not sufficient to certify the gate "
           "for deployment either way, only to check the mechanism behaves sanely at this scale.")
 
-    out_path = REPO_ROOT / "data" / "gate_validation_results.json"
+    out_name = "gate_validation_results_llm.json" if llm_examples > 0 else "gate_validation_results.json"
+    out_path = REPO_ROOT / "data" / out_name
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump({
-            "n": n, "always_answer_baseline_accuracy": always_answer_baseline_acc,
+            "n": n, "labels_source": labels_path.name,
+            "always_answer_baseline_accuracy": always_answer_baseline_acc,
             "ece": ece, "calibration_bins": bin_reports, "threshold_sweep": sweep,
         }, f, indent=2)
     print(f"\nFull results written to {out_path}")

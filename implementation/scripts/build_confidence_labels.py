@@ -1,23 +1,38 @@
 #!/usr/bin/env python
-"""Builds data/confidence_labels.jsonl by running the actual pipeline (hybrid
-retrieval + dialect mapping + templated answer) over data/eval_queries.jsonl and
+"""Builds a confidence-labels JSONL by running the actual pipeline (hybrid
+retrieval + dialect mapping + an answer) over data/eval_queries.jsonl and
 RULE-LABELING correctness against the gold passage ids already curated in that
 file (top1_id in gold_ids -> correct). This is the "hand-labeled/rule-labeled
 correctness against kb.json ground truth" construction method named in the task
 spec for data/confidence_labels.jsonl -- rule-based rather than a human expert
 panel, since no such panel exists for this project; documented here rather than
-silently presented as expert-reviewed.
+silently presented as expert-reviewed. The correctness label is a property of
+retrieval (did the top-1 passage match a gold id), independent of which answer
+generation path is used below, so it stays comparable across the two variants.
 
-Deliberately uses use_llm=False (deterministic templated answers) so labels are
-reproducible run-to-run and don't depend on whether a local LLM happens to be
-loadable in a given environment -- the confidence gate's grounding-overlap
-signal only needs SOME answer text to compare against the retrieved passage, and
-the templated answer is a direct quote of the retrieved passage, which is a
-harder (less informative) test of the grounding signal than an LLM paraphrase
-would be. That's a conservative choice, not a favorable one.
+Two variants, selected by --llm:
+
+  * Default (use_llm=False, deterministic templated answers): reproducible
+    run-to-run and doesn't depend on whether a local LLM happens to be
+    loadable in a given environment. But the templated answer is a direct
+    quote of the retrieved passage, which validate_gate.py's own diagnostic
+    output documents as an artificially easy (uninformative) case for the
+    open-book grounding_overlap signal: it is "grounded" by construction even
+    when the retrieved passage is the wrong one. Written to
+    data/confidence_labels.jsonl.
+  * --llm (use_llm=True, real Qwen2.5-0.5B-Instruct generation, grounded-only
+    prompting per src/generation/llm_generator.py): a genuine test of whether
+    grounding_overlap can actually diverge from correctness once the answer is
+    a real paraphrase rather than a verbatim quote -- this is the
+    "re-validation of the confidence gate's open-book signal against
+    non-template-quoting LLM answers" item main.tex's Conclusion names as
+    future work. Written to data/confidence_labels_llm.jsonl, so the original
+    templated file is never overwritten and both remain available for
+    side-by-side comparison in validate_gate.py.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -28,14 +43,23 @@ sys.path.insert(0, str(REPO_ROOT))
 from src.pipeline import AdvisoryPipeline  # noqa: E402
 
 EVAL_QUERIES_PATH = REPO_ROOT / "data" / "eval_queries.jsonl"
-OUT_PATH = REPO_ROOT / "data" / "confidence_labels.jsonl"
 
 
 def main():
-    pipeline = AdvisoryPipeline(use_llm=False, confidence_threshold=0.0, verbose=True)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--llm", action="store_true",
+                         help="Use real LLM generation instead of the templated "
+                              "verbatim-quote answer; writes to "
+                              "data/confidence_labels_llm.jsonl instead of "
+                              "data/confidence_labels.jsonl.")
+    args = parser.parse_args()
+
+    out_path = REPO_ROOT / "data" / ("confidence_labels_llm.jsonl" if args.llm else "confidence_labels.jsonl")
+
+    pipeline = AdvisoryPipeline(use_llm=args.llm, confidence_threshold=0.0, verbose=True)
     # threshold=0.0 here means "never escalate" purely so we can observe the raw
-    # top1/top2 scores and a real templated answer for every query, regardless of
-    # what a downstream chosen threshold would decide -- validate_gate.py is where
+    # top1/top2 scores and a real answer for every query, regardless of what a
+    # downstream chosen threshold would decide -- validate_gate.py is where
     # threshold choices actually get evaluated.
 
     queries = []
@@ -63,14 +87,18 @@ def main():
             "correct": correct,
         })
 
-    with open(OUT_PATH, "w", encoding="utf-8") as f:
+    with open(out_path, "w", encoding="utf-8") as f:
         for row in labels:
             f.write(json.dumps(row) + "\n")
 
     n_correct = sum(1 for l in labels if l["correct"])
-    print(f"\nWrote {len(labels)} labeled examples to {OUT_PATH}")
+    n_llm = sum(1 for l in labels if l["answer_source"] == "llm")
+    print(f"\nWrote {len(labels)} labeled examples to {out_path}")
     print(f"correct={n_correct} incorrect={len(labels) - n_correct} "
           f"(base top-1 accuracy on this set = {n_correct/len(labels):.3f})")
+    if args.llm:
+        print(f"answer_source=llm for {n_llm}/{len(labels)} examples "
+              f"({len(labels) - n_llm} fell back to template, e.g. if the LLM failed at inference time)")
 
 
 if __name__ == "__main__":

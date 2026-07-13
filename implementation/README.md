@@ -47,6 +47,11 @@ pip install -r requirements.txt
 (e.g. `facebook/wav2vec2-base`'s `.bin` weights) unless torch>=2.6 — that's why
 torch is pinned there rather than something older.
 
+`requirements.txt` also installs `bitsandbytes`, used only by
+`scripts/benchmark_quantization.py` and `LocalLLMGenerator(quantization=...)`
+for INT8/INT4 loading. It requires a CUDA GPU (there's no CPU kernel path) —
+everything else in this repo works without it.
+
 ### Optional local LLM (real generation, not just templating)
 
 ```bash
@@ -106,8 +111,11 @@ it's cheap to regenerate and is a training artifact, not source.
 pytest tests/ -v                        # 24 tests, all passing (see below)
 python scripts/run_evaluation.py        # retrieval baselines vs. eval_queries.jsonl
 python scripts/benchmark_latency.py     # stage-by-stage latency on this machine
-python scripts/build_confidence_labels.py   # regenerates data/confidence_labels.jsonl
-python -m src.confidence.validate_gate  # gate calibration + threshold sweep
+python scripts/build_confidence_labels.py   # regenerates data/confidence_labels.jsonl (templated answers)
+python scripts/build_confidence_labels.py --llm  # same, but with real LLM-generated answers -> data/confidence_labels_llm.jsonl
+python -m src.confidence.validate_gate  # gate calibration + threshold sweep, vs. data/confidence_labels.jsonl
+python -m src.confidence.validate_gate --labels data/confidence_labels_llm.jsonl  # same, vs. the real-LLM-answer labels
+python scripts/benchmark_quantization.py  # LLM generation stage: fp16 vs. INT8 vs. INT4 latency + peak VRAM
 python -m src.pipeline "Kapas ke phool aur tinde me gulabi sundi lag gayi hai"  # one query, end to end
 ```
 
@@ -123,8 +131,9 @@ python -m src.pipeline "Kapas ke phool aur tinde me gulabi sundi lag gayi hai"  
 | Dialect-to-entity mapping | **Real mechanism**, on a **demo-scale, self-curated lexicon** (29 entries). Bootstrapped from generally well-known North/Central-Indian farmer terminology (the kind in KVK/ICAR extension pamphlets), *not* a domain-expert-reviewed or public-KG-sourced resource as the paper's own scoping constraint (contribution 2) requires for production use. See `data/dialect_lexicon.json`'s `_readme` field. |
 | ASR-cascaded baseline | **Real** `faster-whisper` "tiny" transcription of **real synthesized audio** — but that audio is espeak-ng TTS, not recorded human dialect speech (see below). |
 | Speech-native retrieval (adapter) | **Real mechanism**, trained for real on **real (synthetic TTS) audio**, with genuinely measured — and honestly weak — generalization (see Results). Not a claim of real dialect-speech performance; the paper itself says that data doesn't exist yet. |
-| Confidence gate | **Real mechanism**, validated against a real (if small, 50-example) labeled set, with a real (if unflattering) discovered limitation in the open-book signal (see Results). |
+| Confidence gate | **Real mechanism**, validated against a real (if small, 50-example) labeled set. First validation found a real limitation in the open-book signal; a second validation against real (non-template-quoting) LLM answers traced that limitation to an artifact of the first label set rather than the signal itself, and found improved performance (see Results §3 and §3.5). |
 | LLM generation | **Real**, when the model is available (`Qwen/Qwen2.5-0.5B-Instruct`, fp16, ~1.5GB total VRAM for the whole pipeline). Falls back to a deterministic template otherwise — always disclosed via `answer_source`. |
+| Quantized LLM generation (INT8/INT4) | **Real**, measured via `bitsandbytes` (see Results §4.5) — but found to substantially *increase* per-query latency on this GPU relative to fp16, despite reducing VRAM. Not currently used by the main pipeline (`src/pipeline.py` still loads fp16 by default); available via `LocalLLMGenerator(quantization="int8"\|"int4")` for anyone wanting to reproduce or extend the finding. |
 | Offline operation | **Real** for every stage except the one-time adapter-training step and the one-time LLM weight download, exactly matching the paper's own cloud-GPU scoping constraint (contribution 4). |
 
 ### The central honesty caveat: there is no real dialect speech corpus
@@ -211,6 +220,18 @@ mean/~1.47s p95, matching history — a reminder that any single latency run on
 shared, thermally-loaded consumer hardware can be a transient outlier, and
 that the reported figures below reflect the representative, reproducible
 run, not a cherry-picked best case.
+
+**Follow-up experiments note (13 July 2026, same session as above):** two
+new measurements were added on the `experiment/close-open-gaps` branch to
+close items the paper had explicitly left as future work: §3.5 re-validates
+the confidence gate against real (non-template-quoting) LLM answers instead
+of the templated ones used in §3, and §4.5 benchmarks the local LLM under
+INT8/INT4 quantization instead of only fp16. Both are genuinely new code
+paths (`build_confidence_labels.py --llm`, `validate_gate.py --labels`,
+`LocalLLMGenerator(quantization=...)`, `scripts/benchmark_quantization.py`),
+not re-analysis of existing numbers, and both produced real, sometimes
+surprising results — see §3.5 and §4.5 below, and `main.tex` Sections VI-F
+and VI-H for how they're reported in the paper itself.
 
 ### 1. Retrieval baselines (`python scripts/run_evaluation.py`), 50 stratified eval queries
 
@@ -345,6 +366,57 @@ wide confidence interval; read this as "the mechanism behaves sanely and the
 validation methodology itself surfaced a real flaw," not as a certified
 calibration curve.
 
+### 3.5. Gate re-validation with real LLM answers (`python scripts/build_confidence_labels.py --llm && python -m src.confidence.validate_gate --labels data/confidence_labels_llm.jsonl`)
+
+Section 3's "real, discovered limitation" (item 2 above) came with an obvious
+follow-up question: was `grounding_overlap`'s low variance a property of the
+*signal*, or an artifact of the *templated* answers used to build that
+particular label set (which quote their own retrieved passage verbatim, so
+they're grounded by construction)? To find out, the same 50 eval queries were
+re-labeled using real Qwen2.5-0.5B-Instruct generation instead of the
+template (all 50 produced a real LLM answer, zero template fallbacks),
+keeping the correctness rule identical (top-1 retrieved id vs. gold id — a
+property of retrieval, not of the answer text, so the two label sets stay
+comparable), then re-ran the same validation:
+
+```
+--- Signal diagnostics ---
+closed-book retrieval_margin:  min=0.000 max=0.217 mean=0.070
+open-book grounding_overlap:   min=0.000 max=1.000 mean=0.640
+grounding_overlap now shows real variance against these LLM-generated
+answers -- unlike the templated-answer run, the open-book signal is not
+trivially saturated here.
+
+--- Calibration (5 confidence bins) ---
+Expected Calibration Error (ECE): 0.425
+
+--- Threshold sweep (excerpt) ---
+ thr  coverage  n_ans  n_esc  acc_if_ans  esc_prec  esc_recall
+ 0.3     0.720     36     14       0.861     0.429      0.545
+ 0.4     0.340     17     33       0.941     0.303      0.909
+ 0.5     0.060      3     47       1.000     0.234      1.000
+
+PASSES the minimal bar: at threshold=0.4, accuracy-if-answered=0.941 beats
+the always-answer baseline (0.780) by +0.161, answering 34% of queries and
+escalating the rest (escalation_recall=0.909, escalation_precision=0.303).
+```
+
+**The honest read:** the low-variance finding in Section 3 was specifically
+an artifact of the templated label set, not an inherent flaw in the
+`grounding_overlap` signal — with real answers it ranges the full 0.000–1.000
+and the gate's measured performance *improves* on every headline number
+(bigger margin over baseline, higher escalation recall) versus the templated
+run. This is a genuine positive finding, reproduced identically across two
+independent re-runs (the LLM path is deterministic greedy decoding, so this
+isn't just luck). ECE is nominally worse (0.425 vs. 0.291), which follows
+mechanically from the signal now spanning a much wider range rather than
+indicating worse gate behavior on the metric that actually matters
+(accuracy/coverage tradeoff). Per `intrygue2026`, this is still a
+50-example demo-scale check on synthetic-TTS-derived text, not a deployment
+certification — re-validate again at larger scale and on real queries before
+trusting it operationally. Full sweep in
+`data/gate_validation_results_llm.json`.
+
 ### 4. Latency benchmark (`python scripts/benchmark_latency.py`), this machine, this KB
 
 ```
@@ -392,6 +464,44 @@ latency here should not be extrapolated linearly to a production-scale KB
 (thousands+ passages) without re-measuring; BM25/dense search over 42 short
 passages is close to a best case for both.
 
+### 4.5. Quantization benchmark (`python scripts/benchmark_quantization.py`)
+
+The latency numbers above use the LLM in fp16. This benchmark closes the
+obvious follow-up question the "not quantized" caveat kept leaving open:
+does INT8/INT4 quantization via `bitsandbytes` actually help on this exact
+model, on this exact GPU? Each mode is measured in its own fresh subprocess
+(so peak VRAM and latency for one mode can't leak into another), generation
+stage only, `n=20` per mode:
+
+```
+mode     load_s   mean_ms  median_ms   p95_ms  peak_vram_gb
+fp16        3.4    1176.3     1340.4   1343.7          0.95
+int8        4.2    6752.9     7033.0   8592.3          0.61
+int4        7.0    1755.0     1817.6   2401.5          0.47
+```
+
+**The honest read — this is a genuine negative result, not a bug:**
+quantization reduces peak VRAM exactly as expected (fp16 0.95GB → INT8
+0.61GB → INT4 0.47GB), but BOTH quantized modes are substantially *slower*
+than fp16 on this GPU — INT8 by roughly 5–6x (reproduced across three
+independent runs: 6299ms, 6133ms, 6753ms mean, all in the same range), INT4
+by roughly 40–50%. This contradicts the naive expectation (and the
+`compactllm2026` throughput figures cited in the paper, measured on
+different hardware/model scale) that quantization is an unconditional
+latency win. The likely cause: `bitsandbytes`' INT8 path uses an
+outlier-decomposition matmul whose fixed overhead doesn't amortize well at
+small batch size / short sequence length on a consumer (non-datacenter) GPU,
+and a 0.5B-parameter model generating ≤120 tokens is close to a worst case
+for that overhead to pay for itself. **Practical implication for this
+pipeline:** don't naively flip on INT8/INT4 quantization expecting a latency
+win on this hardware class — measure first, exactly as done here. Whether
+this reverses at larger model scale or on datacenter GPUs with dedicated
+low-precision tensor cores is untested by this benchmark. Full results in
+`data/quantization_benchmark_results.json`; note its peak-VRAM numbers are
+for the LLM stage alone (one model per subprocess), not directly comparable
+to the full-pipeline 1.54GB figure above (which loads every model in the
+pipeline together in fp16).
+
 ### 5. Tests (`pytest tests/ -v`)
 
 ```
@@ -437,3 +547,15 @@ no trained adapter is present).
   adapter training reads pretrained wav2vec2 weights already cached locally —
   everything in `scripts/benchmark_latency.py` and `scripts/run_evaluation.py`
   runs with no network calls once those one-time downloads are cached.
+- **INT8/INT4 quantization is implemented and benchmarked (§4.5) but not
+  adopted** — `src/pipeline.py` still loads the LLM in fp16 by default,
+  because the benchmark found quantization to substantially *increase*
+  per-query latency on this GPU class despite reducing VRAM. This is a
+  genuine, surprising finding, not a stub: don't read "quantization support
+  exists" as "quantization is recommended" for this pipeline on this
+  hardware.
+- **The confidence gate's open-book signal weakness (§3, item 2) has been
+  re-validated and traced to an artifact of that section's templated label
+  set, not the signal itself** (§3.5) — this is no longer an open item, but
+  the re-validation is still only a 50-example demo-scale check on
+  synthetic-TTS-derived text, not a deployment certification.

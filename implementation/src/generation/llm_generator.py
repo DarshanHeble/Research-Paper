@@ -45,16 +45,39 @@ Answer:"""
 
 
 class LocalLLMGenerator:
-    def __init__(self, model_name: str = MODEL_NAME, device: str | None = None, max_new_tokens: int = 120):
+    def __init__(self, model_name: str = MODEL_NAME, device: str | None = None, max_new_tokens: int = 120,
+                 quantization: str | None = None):
+        """quantization: None (fp16/fp32, default) | "int8" | "int4" -- both quantized modes
+        use bitsandbytes via transformers' BitsAndBytesConfig and require a CUDA device;
+        requesting them on CPU (or without bitsandbytes installed) raises rather than
+        silently falling back, so a benchmark script can't accidentally report a fp16
+        number under a quantized label.
+        """
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
         resolved = str(_LOCAL_MODEL_DIR) if _LOCAL_MODEL_DIR.exists() else model_name
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_new_tokens = max_new_tokens
+        self.quantization = quantization
         self.tokenizer = AutoTokenizer.from_pretrained(resolved)
-        dtype = torch.float16 if self.device == "cuda" else torch.float32
-        self.model = AutoModelForCausalLM.from_pretrained(resolved, dtype=dtype).to(self.device)
+
+        if quantization in ("int8", "int4"):
+            if self.device != "cuda":
+                raise ValueError(f"quantization={quantization!r} requires a CUDA device (bitsandbytes "
+                                  f"kernels are GPU-only); got device={self.device!r}.")
+            from transformers import BitsAndBytesConfig
+
+            bnb_config = (
+                BitsAndBytesConfig(load_in_8bit=True) if quantization == "int8"
+                else BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16,
+                                        bnb_4bit_quant_type="nf4")
+            )
+            self.model = AutoModelForCausalLM.from_pretrained(resolved, quantization_config=bnb_config,
+                                                               device_map={"": 0})
+        else:
+            dtype = torch.float16 if self.device == "cuda" else torch.float32
+            self.model = AutoModelForCausalLM.from_pretrained(resolved, dtype=dtype).to(self.device)
         self.model.eval()
 
     def generate(self, query: str, passage_text: str) -> str:

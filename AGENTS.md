@@ -33,18 +33,19 @@ fill that gap. What *does* now exist is a runnable software prototype of the
 architecture (`implementation/`, see below) that produces real measured
 numbers on small, honestly-labeled demo data, and **Section VI of `main.tex`
 itself now reports those numbers** — tables, a training curve, a gate
-calibration sweep, and a latency benchmark, explicitly framed as a
-demo-scale mechanism check distinct from Section V's still-open hypotheses,
-not as an execution of the paper's own protocol. See `agents/paper.md` and
-`implementation/README.md` for how each is meant to be read without
-conflating the two.
+calibration sweep, a latency benchmark, a confidence-gate re-validation
+against real (non-template-quoting) LLM answers, and an LLM quantization
+benchmark, explicitly framed as a demo-scale mechanism check distinct from
+Section V's still-open hypotheses, not as an execution of the paper's own
+protocol. See `agents/paper.md` and `implementation/README.md` for how each
+is meant to be read without conflating the two.
 
 ## Repository layout
 
 ```
 paper/             Everything the paper itself needs to compile
   main.tex             IEEE conference paper source (compiles with IEEEtran)
-  reference.bib        Bibliography (32 entries), with verification-status tags
+  reference.bib        Bibliography (33 entries), with verification-status tags
   pdfs/                Local copies of every cited reference (PDF or .txt citation)
 implementation/    Runnable prototype of the proposed system (see its README.md)
 agents/            This documentation set

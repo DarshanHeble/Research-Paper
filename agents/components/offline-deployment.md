@@ -15,14 +15,26 @@ gate are all sub-10ms; the dominant cost is local LLM generation
 (Qwen2.5-0.5B-Instruct, fp16) at ~1.3s mean for a capped 120-token response.
 Peak VRAM with every model loaded simultaneously (dense retriever, Whisper
 tiny, wav2vec2+adapter, the LLM) is ~1.4-1.5GB across the two runs —
-comfortably inside the 6GB budget, on this demo-scale 42-passage KB. **Not
-yet done**: quantization of
-the LLM (it runs fp16, not INT4/INT8), so this prototype has not yet tested
-whether the `compactllm2026` throughput figures cited below actually hold
-once quantization is combined with the rest of this stack — that comparison
-remains open. Network access was used only for one-time model-weight
-downloads; every benchmarked run itself is offline. See
-`implementation/README.md` §4 for full stage-by-stage numbers.
+comfortably inside the 6GB budget, on this demo-scale 42-passage KB, in the
+LLM's default fp16 configuration. **Quantization has now been benchmarked**
+(`implementation/scripts/benchmark_quantization.py`, INT8/INT4 via
+`bitsandbytes`) and produced a real, surprising negative result: both
+quantized modes reduce peak VRAM as expected (fp16 0.95GB -> INT8 0.61GB ->
+INT4 0.47GB, LLM stage alone) but substantially *increase* per-query latency
+on this GPU (INT8 ~5-6x slower, INT4 ~40-50% slower than fp16), contrary to
+the throughput improvements `compactllm2026` reports for quantized inference
+on smartphone-class hardware. The likely cause is that `bitsandbytes`' INT8
+outlier-decomposition matmul has fixed overhead that doesn't amortize well
+at the small batch size / short sequence length / small (0.5B) model scale
+used here, on a consumer (non-datacenter) GPU. This directly qualifies RQ3:
+the pipeline's offline-feasibility finding holds for the fp16 configuration
+actually benchmarked, not for a naively-quantized one — quantization is not
+an unconditional latency win at this model/hardware scale. Whether it
+reverses at larger model scale or on datacenter GPUs with dedicated
+low-precision tensor cores is untested. Network access was used only for
+one-time model-weight downloads; every benchmarked run itself is offline.
+See `implementation/README.md` §4 and §4.5 for full stage-by-stage numbers
+and the quantization comparison respectively.
 
 ## What it is
 

@@ -130,21 +130,33 @@ the speech embeddings and the dialect-mapped entities feed into.
    deployment needs per contribution 2, but a working lookup-and-normalize
    mechanism.
 5. ~~Add confidence scoring + escalation gate~~ **Done, validated, with a
-   real discovered flaw** — `implementation/src/confidence/{gate,
+   real discovered flaw that a follow-up validation then traced to an
+   artifact, not a fundamental problem** — `implementation/src/confidence/{gate,
    validate_gate}.py`; clears the minimal "beats always-answer" bar
-   (87.5% vs. 78.0% accuracy-if-answered at threshold 0.5) but validation
-   itself surfaced that the open-book signal isn't pulling its weight in
-   this run — exactly the kind of thing Section IV-E's validation
-   requirement is *for* catching.
-6. ~~Quantize and package the full pipeline~~ **Done for latency; not
-   quantized** — `implementation/scripts/benchmark_latency.py` measures real
+   (87.5% vs. 78.0% accuracy-if-answered at threshold 0.5) but the first
+   validation surfaced that the open-book signal isn't pulling its weight in
+   that run — exactly the kind of thing Section IV-E's validation
+   requirement is *for* catching. A second validation
+   (`build_confidence_labels.py --llm` + `validate_gate.py --labels
+   data/confidence_labels_llm.jsonl`) re-built the label set with real,
+   non-template-quoting LLM answers and found the signal genuinely
+   discriminative (0.000-1.000 range vs. the templated set's 0.868-0.937)
+   and the gate's overall performance *improved* (94.1% accuracy at 34%
+   coverage, +0.161 over baseline, vs. the templated set's +0.095) — see
+   `implementation/README.md` §3.5.
+6. ~~Quantize and package the full pipeline~~ **Done for latency; quantization
+   now benchmarked too, with a surprising negative result** —
+   `implementation/scripts/benchmark_latency.py` measures real
    stage-by-stage latency on an actual RTX 3050 6GB laptop (~1.4-1.5GB peak
-   VRAM, all models loaded, reproduced on two separate machines of this class);
-   the LLM (Qwen2.5-0.5B-Instruct)
-   runs in fp16, not INT4/INT8-quantized — quantization itself is not yet
-   implemented, so the `compactllm2026`-style throughput figures in
-   `agents/components/offline-deployment.md` remain uncompared against a
-   quantized version of this exact pipeline.
+   VRAM, all models loaded, reproduced on two separate machines of this class)
+   with the LLM (Qwen2.5-0.5B-Instruct) in fp16. `scripts/benchmark_quantization.py`
+   (via `LocalLLMGenerator(quantization="int8"|"int4")`, `bitsandbytes`)
+   measured INT8/INT4 loading of that same model on the same GPU: both
+   *increase* per-query latency substantially (INT8 ~5-6x slower, INT4
+   ~40-50% slower) despite reducing peak VRAM as expected — the
+   `compactllm2026`-style throughput improvements do not hold for this
+   small model on this consumer GPU class, contrary to the naive
+   expectation. See `implementation/README.md` §4.5.
 
 ## What's still genuinely open after this prototype
 
@@ -157,12 +169,18 @@ the speech embeddings and the dialect-mapped entities feed into.
   implements the simpler post-transcription lexicon-lookup version, so
   dialect mapping and speech-native retrieval don't currently compose (see
   `implementation/src/pipeline.py`'s module docstring).
-- **Quantization** of the local LLM for the offline deployment story (RQ3).
+- **Quantization latency regression, unexplained beyond a plausible
+  mechanism.** Whether the INT8/INT4 slowdown found here reverses at larger
+  model scale or on datacenter-class GPUs with dedicated low-precision
+  tensor cores is untested — a narrower, more concrete question than the
+  original "quantization not yet implemented" gap.
 - **The human-expert escalation target** is a stubbed string, not a real
   operational integration (phone queue, ticketing system, etc.).
-- **Confidence-gate signal quality** — the open-book grounding signal needs
-  re-validating against non-template-quoting LLM answers before being
-  trusted; see `implementation/README.md` §3 for the full finding.
+- **Confidence-gate re-validation at larger scale.** The gate's open-book
+  signal was re-validated against real LLM answers and found genuinely
+  discriminative (see item 5 above), but only on the same 50-example
+  demo-scale, synthetic-TTS-derived set — this should be re-checked again at
+  larger scale and on real queries before being trusted operationally.
 
 ## Constraints carried over from the paper's scoping
 

@@ -10,10 +10,10 @@ Implemented at `implementation/src/confidence/{gate,validate_gate}.py`,
 combining a closed-book signal (retrieval score margin) and an open-book
 signal (lexical grounding overlap between the answer and its source
 passage), and validated against 50 labeled examples exactly per the
-Section IV-E protocol this doc calls for. Real result: the gate clears the
-minimal bar (87.5% accuracy on the ~32% of queries it chooses to answer, vs.
-78.0% unconditional accuracy, catching 81.8% of actually-wrong answers via
-escalation) — but validation also **surfaced a real instance of the
+Section IV-E protocol this doc calls for. First real result: the gate clears
+the minimal bar (87.5% accuracy on the ~32% of queries it chooses to answer,
+vs. 78.0% unconditional accuracy, catching 81.8% of actually-wrong answers
+via escalation) — but validation also **surfaced a real instance of the
 INTRYGUE warning below**: the open-book signal barely varies across examples
 in this run (because the templated answers quote their own top-1 passage
 verbatim, so they're "grounded" even when that passage is wrong), meaning
@@ -21,8 +21,24 @@ almost all of the gate's discriminative power currently comes from the
 retrieval-margin signal alone, not the intended combination. This is the
 component doing exactly what Section IV-E's validation step is for: catching
 a signal that looks reasonable in aggregate but is silently carried by only
-one input, discoverable only by validating against labels. See
-`implementation/README.md` §3 for the full numbers and calibration table.
+one input, discoverable only by validating against labels.
+
+**Follow-up re-validation (`build_confidence_labels.py --llm`,
+`validate_gate.py --labels data/confidence_labels_llm.jsonl`):** re-labeled
+the same 50 queries with real, non-template-quoting Qwen2.5-0.5B-Instruct
+answers instead of the template, keeping the correctness rule identical.
+Result: the open-book signal is genuinely discriminative once the
+template-quoting artifact is removed (grounding_overlap ranges 0.000-1.000
+vs. the templated set's 0.868-0.937), and the gate's overall performance
+*improves* (94.1% accuracy at 34% coverage, +0.161 over the 0.780 baseline,
+vs. the templated set's +0.095; escalation recall 0.909 vs. 0.818). This
+traces the item above to an artifact of the first validation set's
+construction rather than a fundamental flaw in the signal design — a real,
+reproducible (identical across two independent runs, deterministic
+generation) positive finding, though still only a 50-example demo-scale
+check that should be re-validated again at larger scale before deployment.
+See `implementation/README.md` §3 for the full numbers and calibration
+table, and §3.5 for the re-validation.
 
 ## What it is
 
