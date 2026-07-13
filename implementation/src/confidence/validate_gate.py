@@ -119,6 +119,13 @@ def main():
                               "pass data/confidence_labels_llm.jsonl for the real-LLM-answer variant).")
     args = parser.parse_args()
     labels_path = Path(args.labels)
+    if not labels_path.exists():
+        raise SystemExit(
+            f"error: --labels file not found: {labels_path}\n"
+            f"Generate it first, e.g.:\n"
+            f"  python scripts/build_confidence_labels.py            # -> data/confidence_labels.jsonl\n"
+            f"  python scripts/build_confidence_labels.py --llm      # -> data/confidence_labels_llm.jsonl"
+        )
 
     gate = ConfidenceGate(threshold=0.5)  # threshold itself is swept below; this instance is for scoring only
     rows = load_labels(labels_path)

@@ -268,7 +268,11 @@ if __name__ == "__main__":
     import sys
 
     pipeline = AdvisoryPipeline(use_llm=True)
-    query = " ".join(sys.argv[1:]) or "Kapas ke phool aur tinde me gulabi sundi lag gayi hai"
+    # len(sys.argv) > 1, not truthiness of the joined string, so an explicit empty-string
+    # argument is actually run (and escalates, same as any other unmatched query) instead of
+    # silently being replaced by the demo default -- found by black-box testing that fed "" on
+    # the command line and got the demo query's result back instead.
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "Kapas ke phool aur tinde me gulabi sundi lag gayi hai"
     result = pipeline.answer_text_query(query)
     print(f"\nquery       : {result.original_query}")
     print(f"normalized  : {result.normalized_query}")
