@@ -37,6 +37,7 @@ touched):
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -47,36 +48,75 @@ _ESPEAK_LIB = _DIST_DIR / "lib"
 _ESPEAK_DATA = _DIST_DIR / "espeak-ng-data"
 # Legacy single-binary layout (Debian/Ubuntu dpkg -x extraction), still
 # supported so this module works unmodified on either host this project has
-# run on -- see module docstring.
+# run on -- see module docstring. NOTE: this binary is committed to git as
+# built on the original Ubuntu dev box, dynamically linked against
+# libespeak-ng.so.1 with no rpath -- it only runs on a host that already has
+# libespeak-ng1 + espeak-ng-data installed system-wide, which is *not*
+# guaranteed (the module docstring above notes neither reference environment
+# had it preinstalled). It is tried last, after the self-contained dist
+# bundle and after a real system install, precisely because it's the most
+# likely candidate to be present-but-broken on a fresh clone.
 _ESPEAK_BIN_LEGACY = _TOOLS_DIR / "espeak-ng"
+
+
+def _candidates() -> list[tuple[Path, dict[str, str]]]:
+    """Ordered (binary, extra_env) candidates, most to least likely to work."""
+    base_env = os.environ.copy()
+    candidates: list[tuple[Path, dict[str, str]]] = []
+    if _ESPEAK_BIN.exists():
+        dist_env = dict(base_env)
+        dist_env["LD_LIBRARY_PATH"] = f"{_ESPEAK_LIB}:{base_env.get('LD_LIBRARY_PATH', '')}"
+        dist_env["ESPEAK_DATA_PATH"] = str(_ESPEAK_DATA)
+        candidates.append((_ESPEAK_BIN, dist_env))
+    system_bin = shutil.which("espeak-ng")
+    if system_bin:
+        candidates.append((Path(system_bin), base_env))
+    if _ESPEAK_BIN_LEGACY.exists():
+        candidates.append((_ESPEAK_BIN_LEGACY, base_env))
+    return candidates
 
 
 def synthesize(text: str, out_wav_path: str | Path, voice: str = "en", speed_wpm: int = 160) -> Path:
     """Synthesize `text` to a 22.05kHz mono WAV file at out_wav_path using espeak-ng.
 
-    Raises FileNotFoundError if no bundled espeak-ng binary is found, and
-    subprocess.CalledProcessError if synthesis fails for some other reason.
+    Tries, in order: the self-contained tools/espeak-ng-dist/ bundle, a
+    system-installed `espeak-ng` on PATH, then the legacy committed binary
+    (see _ESPEAK_BIN_LEGACY's comment for why it's last and least reliable).
+    Falls through to the next candidate if one exists but fails to run (e.g.
+    missing shared library), rather than surfacing a cryptic subprocess error
+    from a candidate that was never going to work on this host.
+
+    Raises FileNotFoundError if no candidate is available or all of them
+    fail to run.
     """
     out_wav_path = Path(out_wav_path)
     out_wav_path.parent.mkdir(parents=True, exist_ok=True)
 
-    env = os.environ.copy()
-    if _ESPEAK_BIN.exists():
-        bin_path = _ESPEAK_BIN
-        env["LD_LIBRARY_PATH"] = f"{_ESPEAK_LIB}:{env.get('LD_LIBRARY_PATH', '')}"
-        env["ESPEAK_DATA_PATH"] = str(_ESPEAK_DATA)
-    elif _ESPEAK_BIN_LEGACY.exists():
-        bin_path = _ESPEAK_BIN_LEGACY
-    else:
+    candidates = _candidates()
+    if not candidates:
         raise FileNotFoundError(
-            f"No espeak-ng binary found at {_ESPEAK_BIN} or {_ESPEAK_BIN_LEGACY}. "
-            "See src/tts_util.py docstring for how it was obtained in the reference "
-            "environments (no root required); a plain `apt-get install espeak-ng` / "
-            "`pacman -S espeak-ng` also works if you have sudo."
+            f"No espeak-ng binary found at {_ESPEAK_BIN}, on PATH, or at "
+            f"{_ESPEAK_BIN_LEGACY}. See src/tts_util.py docstring for how it was "
+            "obtained in the reference environments (no root required); a plain "
+            "`apt-get install espeak-ng` / `pacman -S espeak-ng` also works if you "
+            "have sudo."
         )
-    cmd = [str(bin_path), "-v", voice, "-s", str(speed_wpm), "-w", str(out_wav_path), text]
-    subprocess.run(cmd, check=True, capture_output=True, env=env)
-    return out_wav_path
+
+    errors = []
+    for bin_path, env in candidates:
+        cmd = [str(bin_path), "-v", voice, "-s", str(speed_wpm), "-w", str(out_wav_path), text]
+        try:
+            subprocess.run(cmd, check=True, capture_output=True, env=env)
+            return out_wav_path
+        except (subprocess.CalledProcessError, OSError) as exc:
+            detail = exc.stderr.decode(errors="replace") if getattr(exc, "stderr", None) else str(exc)
+            errors.append(f"{bin_path}: {detail.strip()}")
+
+    raise FileNotFoundError(
+        "Every espeak-ng candidate failed to run:\n"
+        + "\n".join(f"  - {e}" for e in errors)
+        + "\nSee src/tts_util.py docstring for setup options."
+    )
 
 
 if __name__ == "__main__":
