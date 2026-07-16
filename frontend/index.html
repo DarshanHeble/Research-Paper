@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Speech-Native RAG Advisory — Demo</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 760px;
+    margin: 2.5rem auto;
+    padding: 0 1rem;
+    line-height: 1.5;
+  }
+  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
+  p.sub { color: #888; margin-top: 0; }
+  textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
+    padding: 0.6rem;
+    min-height: 4.5rem;
+    resize: vertical;
+  }
+  #backend-url {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 0.85rem;
+    padding: 0.4rem;
+    margin-bottom: 0.6rem;
+    color: #888;
+  }
+  button {
+    margin-top: 0.6rem;
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  #status { margin-top: 0.6rem; color: #888; font-size: 0.9rem; }
+  #result {
+    margin-top: 1.2rem;
+    border: 1px solid #8883;
+    border-radius: 8px;
+    padding: 1rem;
+    display: none;
+  }
+  #result.escalate { border-color: #d97706; }
+  #result.answered { border-color: #16a34a; }
+  .badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: #8882;
+    margin-left: 0.4rem;
+  }
+  .field { margin-top: 0.6rem; }
+  .field .label { font-size: 0.8rem; color: #888; }
+  pre { white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<h1>Speech-Native RAG Advisory — Demo</h1>
+<p class="sub">Text query → dialect mapping → hybrid retrieval → LLM generation → confidence gate</p>
+
+<label class="field">
+  <span class="label">Backend URL</span>
+  <input id="backend-url" value="http://localhost:8000" />
+</label>
+
+<textarea id="query" placeholder="e.g. Kapas ke phool aur tinde me gulabi sundi lag gayi hai">Kapas ke phool aur tinde me gulabi sundi lag gayi hai</textarea>
+<br />
+<button id="submit">Ask</button>
+<span id="status"></span>
+
+<div id="result"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function checkHealth() {
+  try {
+    const res = await fetch($('backend-url').value + '/health');
+    const data = await res.json();
+    $('status').textContent = data.llm_loaded
+      ? 'backend: ready (real LLM loaded)'
+      : 'backend: ready (template fallback -- no LLM loaded)';
+  } catch {
+    $('status').textContent = 'backend: unreachable';
+  }
+}
+
+function field(label, value) {
+  return `<div class="field"><span class="label">${label}</span><div>${value}</div></div>`;
+}
+
+$('submit').addEventListener('click', async () => {
+  const query = $('query').value.trim();
+  if (!query) return;
+
+  const resultEl = $('result');
+  resultEl.style.display = 'block';
+  resultEl.className = '';
+  resultEl.innerHTML = 'Running pipeline...';
+  $('submit').disabled = true;
+
+  try {
+    const res = await fetch($('backend-url').value + '/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: query }),
+    });
+    const r = await res.json();
+
+    if (r.error) {
+      resultEl.innerHTML = `<strong>Error:</strong> ${r.error}`;
+      return;
+    }
+
+    resultEl.className = r.escalate ? 'escalate' : 'answered';
+    resultEl.innerHTML = `
+      <div><strong>Answer</strong>
+        <span class="badge">${r.answer_source}</span>
+        <span class="badge">${r.escalate ? 'ESCALATED' : 'ANSWERED'}</span>
+      </div>
+      <pre>${r.answer}</pre>
+      ${field('Normalized query', r.normalized_query ?? '—')}
+      ${field('Matched dialect terms', (r.matched_dialect_terms || []).join(', ') || '—')}
+      ${field('Top-1 retrieved passage', `${r.top1_title ?? '—'} (score=${r.top1_score?.toFixed(4) ?? '—'})`)}
+      ${field('Confidence', r.confidence?.toFixed(3) ?? '—')}
+      ${field('Timings (sec)', `<pre>${JSON.stringify(r.timings_sec, null, 2)}</pre>`)}
+    `;
+  } catch (e) {
+    resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
+  } finally {
+    $('submit').disabled = false;
+  }
+});
+
+checkHealth();
+</script>
+
+</body>
+</html>

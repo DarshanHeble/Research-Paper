@@ -31,3 +31,7 @@ soundfile==0.14.0
 librosa==0.11.0
 
 pytest==9.1.1
+
+# Demo backend (implementation/src/server.py)
+fastapi==0.139.0
+uvicorn==0.51.0
