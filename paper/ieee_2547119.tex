@@ -132,7 +132,7 @@ Table~\ref{tab:retrieval} reports recall@1 for six conditions; Fig.~\ref{fig:ret
 \caption{Recall@1 by retrieval condition and query stratum (prototype, $n{=}50$). Conditions 1--4 take ground-truth text; only 5--6 take synthesized speech audio.}
 \centering
 \footnotesize
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
 \textbf{Condition} & \textbf{All} & \textbf{Std.} & \textbf{Dial.} \\
 \midrule
@@ -141,7 +141,7 @@ Table~\ref{tab:retrieval} reports recall@1 for six conditions; Fig.~\ref{fig:ret
 3. Hybrid, no dialect map. [text]       & 0.460 & 0.958 & 0.000 \\
 4. Hybrid + dialect map. [text]         & \textbf{0.780} & 0.958 & \textbf{0.615} \\
 5. ASR cascade + hybrid + map. [audio]  & 0.380 & 0.792 & 0.000 \\
-6. Speech-native adapter [audio]        & 0.020 & 0.000 & 0.039 \\
+6. Speech-native adapter [audio]        & 0.020 & 0.000 & 0.038 \\
 \bottomrule
 \end{tabular}
 \label{tab:retrieval}
