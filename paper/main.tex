@@ -12,6 +12,12 @@
 \usepackage{url}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+% Categorical chart palette (validated: CVD-safe adjacent pairs on a light surface).
+\definecolor{vizblue}{HTML}{2A78D6}
+\definecolor{vizorange}{HTML}{EB6834}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -229,7 +235,7 @@ Sections III--V describe an architecture and a protocol for evaluating it, and s
 The prototype implements all four pipeline stages of Fig.~\ref{fig:architecture}: a hybrid BM25 + dense retriever (Reciprocal Rank Fusion, $k=60$) over a 42-passage hand-authored agricultural knowledge base spanning common and domain-critical-rare pest, disease, and pesticide entries; a 29-entry dialect-to-entity lexicon bootstrapped, per the contribution-2 constraint, from generally known North/Central-Indian farmer-extension terminology rather than a domain-expert-reviewed or public-KG-sourced resource --- a demo-scale stand-in for the resource contribution 2 specifies, not that resource itself; a speech-native retrieval adapter (frozen wav2vec2 \cite{baevski2020wav2vec} encoder plus a small trained projection head, following \cite{min2025speechrag,google2025s2r}) trained with an in-batch InfoNCE contrastive objective; an ASR-cascaded baseline using \texttt{faster-whisper} ``tiny'' \cite{radford2023whisper}; and a confidence gate combining a closed-book retrieval-margin signal with an open-book lexical-grounding-overlap signal, per the taxonomy of \cite{dependablerag2026}. Generation uses Qwen2.5-0.5B-Instruct in fp16, falling back to a deterministic template when the LLM is unavailable. All measurements below were run on a single NVIDIA RTX 3050 Laptop GPU (6~GB VRAM), stating a concrete hardware target as Section IV-F requires. Evaluation uses 50 queries stratified 2$\times$2 over standard/dialectal phrasing and common/domain-critical-rare entities, matching Section IV-B's stratification design.
 
 \subsection{Retrieval Comparison}
-Table~\ref{tab:retrieval} reports recall@1, by query stratum, for six retrieval conditions. Conditions 1--4 take the ground-truth query \emph{text} directly, isolating the retrieval-strategy and dialect-mapping backbone from any ASR- or speech-encoding-induced error; only conditions 5 and 6 take synthesized speech \emph{audio} as input, which is the only fair test of this paper's speech-native premise, and --- as discussed below --- neither currently performs well. This distinction matters for how the table should be read: the strong condition-4 numbers below demonstrate the retrieval-and-mapping backbone works given correct input text, not that the pipeline retrieves well from speech; Sections VI-D and VII return to why no speech-input condition yet reaches comparable performance. Dialect mapping is the single largest lever measured among the text-input conditions: every condition without it scores at or near zero recall@1 on both dialectal strata, while adding it (condition 4) raises dialectal recall@1 to 0.615 --- a real, clean, demo-scale confirmation of the RQ2/RQ4 premise that a mapping layer is specifically what unlocks dialectal queries, though the 42-passage KB used here has fairly distinct inter-passage vocabulary, and the same experiment on a larger, messier knowledge base would need to be re-run before trusting this exact figure. The ASR-cascaded baseline (condition 5) is badly degraded by dialectal queries (0.000 recall@1 on both dialectal strata) and, notably, underperforms text-only hybrid retrieval even on standard-phrasing queries (0.583 vs.\ 0.917 on standard/common), because Whisper ``tiny'' mistranscribes even the synthetic English-voice audio substantially; this is consistent with the ASR-error concentration reported by \cite{benchmarkingasr2026,dialectmatters2026}, but should be read as a property of this specific small model and synthetic-audio pipeline, not a general claim about Whisper. (A same-day re-run of this evaluation reproduced every other cell in this table exactly and this condition's dialectal/common cell specifically at 0.000 rather than an earlier 0.077 --- one query's transcription flipping between correct and incorrect, a known run-to-run non-determinism of \texttt{faster-whisper} on GPU stemming from non-deterministic cuDNN kernel selection; the qualitative finding is unchanged.) The trained speech-native adapter (condition 6) scores 0.020 recall@1 overall on this held-out eval set --- effectively chance for a 42-way retrieval problem --- despite demonstrably learning a real retrieval signal on its own training distribution (Section VI-D) --- a genuine, and informative, negative result rather than an implementation defect.
+Table~\ref{tab:retrieval} reports recall@1, by query stratum, for six retrieval conditions; Fig.~\ref{fig:retrieval-chart} visualizes the standard-vs.-dialectal split for the four text-input conditions. Conditions 1--4 take the ground-truth query \emph{text} directly, isolating the retrieval-strategy and dialect-mapping backbone from any ASR- or speech-encoding-induced error; only conditions 5 and 6 take synthesized speech \emph{audio} as input, which is the only fair test of this paper's speech-native premise, and --- as discussed below --- neither currently performs well. This distinction matters for how the table should be read: the strong condition-4 numbers below demonstrate the retrieval-and-mapping backbone works given correct input text, not that the pipeline retrieves well from speech; Sections VI-D and VII return to why no speech-input condition yet reaches comparable performance. Dialect mapping is the single largest lever measured among the text-input conditions: every condition without it scores at or near zero recall@1 on both dialectal strata, while adding it (condition 4) raises dialectal recall@1 to 0.615 --- a real, clean, demo-scale confirmation of the RQ2/RQ4 premise that a mapping layer is specifically what unlocks dialectal queries, though the 42-passage KB used here has fairly distinct inter-passage vocabulary, and the same experiment on a larger, messier knowledge base would need to be re-run before trusting this exact figure. The ASR-cascaded baseline (condition 5) is badly degraded by dialectal queries (0.000 recall@1 on both dialectal strata) and, notably, underperforms text-only hybrid retrieval even on standard-phrasing queries (0.583 vs.\ 0.917 on standard/common), because Whisper ``tiny'' mistranscribes even the synthetic English-voice audio substantially; this is consistent with the ASR-error concentration reported by \cite{benchmarkingasr2026,dialectmatters2026}, but should be read as a property of this specific small model and synthetic-audio pipeline, not a general claim about Whisper. (A same-day re-run of this evaluation reproduced every other cell in this table exactly and this condition's dialectal/common cell specifically at 0.000 rather than an earlier 0.077 --- one query's transcription flipping between correct and incorrect, a known run-to-run non-determinism of \texttt{faster-whisper} on GPU stemming from non-deterministic cuDNN kernel selection; the qualitative finding is unchanged.) The trained speech-native adapter (condition 6) scores 0.020 recall@1 overall on this held-out eval set --- effectively chance for a 42-way retrieval problem --- despite demonstrably learning a real retrieval signal on its own training distribution (Section VI-D) --- a genuine, and informative, negative result rather than an implementation defect.
 
 \begin{table*}[t]
 \caption{Recall@1 by retrieval condition and query stratum (prototype, $n{=}50$ demo eval queries; see Section VI-A for scope caveats). Conditions 1--4 take ground-truth query text as input; only conditions 5--6 take synthesized speech audio, the only fair test of the paper's speech-native premise.}
@@ -249,6 +255,37 @@ Table~\ref{tab:retrieval} reports recall@1, by query stratum, for six retrieval 
 \end{tabular}
 \label{tab:retrieval}
 \end{table*}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=7pt,
+  width=\columnwidth,
+  height=4.2cm,
+  ymin=0, ymax=1.05,
+  ylabel={Recall@1},
+  symbolic x coords={bm25,dense,hybrid,hybriddm},
+  xtick=data,
+  xticklabels={BM25,Dense,Hybrid,{+Dialect map.}},
+  x tick label style={font=\scriptsize},
+  y tick label style={font=\scriptsize},
+  ylabel style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.5,1.16)}, anchor=south, legend columns=-1},
+  enlarge x limits=0.18,
+  nodes near coords,
+  nodes near coords style={font=\tiny},
+  every node near coord/.append style={/pgf/number format/.cd, fixed, precision=2},
+]
+\addplot[fill=vizblue, draw=black] coordinates {(bm25,0.9585) (dense,0.833) (hybrid,0.9585) (hybriddm,0.9585)};
+\addplot[fill=vizorange, draw=black] coordinates {(bm25,0.077) (dense,0.000) (hybrid,0.000) (hybriddm,0.615)};
+\legend{Standard phrasing, Dialectal phrasing}
+\end{axis}
+\end{tikzpicture}
+\caption{Recall@1 for standard- vs.\ dialectal-phrasing queries, averaged over the common/rare-entity strata of Table~\ref{tab:retrieval} (text-input conditions 1--4 only). Dialect mapping (rightmost bar pair) is the only lever tested that lifts dialectal recall above near-zero.}
+\label{fig:retrieval-chart}
+\end{figure}
 
 \subsection{Speech-Native Adapter: Mechanism Works, Generalization Does Not}
 Trained for 100 epochs (fixed seed, $\sim$20~s wall time) with an in-batch InfoNCE contrastive loss on 108 auto-generated English template sentences, the adapter reaches 61.1\% top-1 passage retrieval accuracy on its own 18-example held-out validation split --- roughly 26$\times$ the 2.4\% chance level for this 42-way retrieval problem, and a real, positive demonstration that the frozen-speech-encoder-plus-small-adapter mechanism of \cite{min2025speechrag,google2025s2r} works end to end without any transcription step. On the held-out evaluation query set's full natural-language symptom descriptions and romanized dialectal queries --- a materially different phrasing distribution from the short templates it trained on --- recall@1 falls to 0.020 overall (Table~\ref{tab:retrieval}, condition 6), effectively at chance. This generalization gap is exactly the kind of result RQ1 anticipates as an open question rather than assumes resolved: the mechanism transfers, a small synthetic training signal does not, and dialect-speech generalization specifically remains untested by this prototype, since no dialect speech data exists to test it on.
@@ -275,7 +312,7 @@ Following the Section IV-E protocol, the gate was validated on 50 labeled exampl
 \subsection{Confidence Gate Re-Validation with Real LLM Answers}
 Section VI-E's validation used templated answers that quote their retrieved passage verbatim --- itself flagged there as an artificially easy case for the open-book grounding-overlap signal, since such an answer is grounded by construction regardless of whether the retrieved passage was even correct. To test whether the resulting low-variance finding was a genuine property of the signal or an artifact of that templated construction, the same 50 eval queries were re-labeled using real Qwen2.5-0.5B-Instruct generation (the same grounded-generation prompt used elsewhere in the pipeline, Section VI-B) in place of the template, with correctness still defined identically --- whether the retrieved top-1 passage matched the gold id, a property of retrieval rather than of the answer text, so the two label sets remain directly comparable. All 50 queries produced a real LLM answer (zero template fallbacks), and the result was identical across two independent re-runs (deterministic greedy decoding).
 
-Table~\ref{tab:gate-llm} compares the two label sets. Against real answers, \texttt{grounding\_overlap} ranges from 0.000 to 1.000 (mean 0.640) rather than the templated set's near-constant 0.868--0.937 --- confirming the original low-variance finding was specifically an artifact of the template-quoting construction, not an inherent property of the signal. The gate's discriminative performance also improves on this set: at its best threshold (0.4, chosen by the same $n_{\text{answered}}\geq5$ selection rule as Section VI-E), it answers 34\% of queries at 0.941 accuracy against the same 0.780 always-answer baseline --- a +0.161 margin, larger than the templated set's +0.095 --- while catching 90.9\% of actually-wrong answers (vs.\ 81.8\%). Calibration (Expected Calibration Error) is nominally worse on this set (0.425 vs.\ 0.291), but this follows mechanically from the signal now taking a much wider range of values rather than indicating worse gate behavior in the accuracy/coverage sense that matters for the deployment decision. This closes one of the two open problems Sections VI-E and VII originally named as future work: on this evidence, the open-book signal's apparent weakness was a limitation of the first validation set's construction, not (so far) an inherent flaw in the signal design --- though, per \cite{intrygue2026}, this remains a 50-example demo-scale check on synthetic-TTS-derived text, not a deployment certification, and should be re-validated again at larger scale before being trusted operationally.
+Table~\ref{tab:gate-llm} compares the two label sets (Fig.~\ref{fig:gate-chart} plots the comparable metrics side by side). Against real answers, \texttt{grounding\_overlap} ranges from 0.000 to 1.000 (mean 0.640) rather than the templated set's near-constant 0.868--0.937 --- confirming the original low-variance finding was specifically an artifact of the template-quoting construction, not an inherent property of the signal. The gate's discriminative performance also improves on this set: at its best threshold (0.4, chosen by the same $n_{\text{answered}}\geq5$ selection rule as Section VI-E), it answers 34\% of queries at 0.941 accuracy against the same 0.780 always-answer baseline --- a +0.161 margin, larger than the templated set's +0.095 --- while catching 90.9\% of actually-wrong answers (vs.\ 81.8\%). Calibration (Expected Calibration Error) is nominally worse on this set (0.425 vs.\ 0.291), but this follows mechanically from the signal now taking a much wider range of values rather than indicating worse gate behavior in the accuracy/coverage sense that matters for the deployment decision. This closes one of the two open problems Sections VI-E and VII originally named as future work: on this evidence, the open-book signal's apparent weakness was a limitation of the first validation set's construction, not (so far) an inherent flaw in the signal design --- though, per \cite{intrygue2026}, this remains a 50-example demo-scale check on synthetic-TTS-derived text, not a deployment certification, and should be re-validated again at larger scale before being trusted operationally.
 
 \begin{table}[t]
 \caption{Confidence gate: templated-answer labels (best thresh.\ 0.5) vs.\ real-LLM-answer labels (best thresh.\ 0.4); prototype, $n{=}50$}
@@ -298,8 +335,36 @@ ECE (5 bins)          & 0.291        & 0.425 \\
 \label{tab:gate-llm}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=6pt,
+  width=\columnwidth,
+  height=4.4cm,
+  ymin=0, ymax=1.05,
+  ylabel={Value},
+  symbolic x coords={cov,acc,margin,escrec,escprec},
+  xtick=data,
+  xticklabels={Coverage,{Acc.\ if ans.},Margin,{Esc.\ recall},{Esc.\ prec.}},
+  x tick label style={font=\scriptsize, rotate=25, anchor=north east},
+  y tick label style={font=\scriptsize},
+  ylabel style={font=\scriptsize},
+  legend style={font=\scriptsize, at={(0.5,1.18)}, anchor=south, legend columns=-1},
+  enlarge x limits=0.15,
+]
+\addplot[fill=vizblue, draw=black] coordinates {(cov,0.320) (acc,0.875) (margin,0.095) (escrec,0.818) (escprec,0.265)};
+\addplot[fill=vizorange, draw=black] coordinates {(cov,0.340) (acc,0.941) (margin,0.161) (escrec,0.909) (escprec,0.303)};
+\legend{Templated answers, Real LLM answers}
+\end{axis}
+\end{tikzpicture}
+\caption{Confidence-gate metrics from Table~\ref{tab:gate-llm}: re-validating against real LLM answers (Section VI-F) improves the coverage-accuracy margin and escalation recall over the original templated-answer validation (Section VI-E).}
+\label{fig:gate-chart}
+\end{figure}
+
 \subsection{Offline Latency and Memory (RQ3)}
-Table~\ref{tab:latency} reports steady-state per-stage latency on the RTX 3050 Laptop target. Dialect mapping, hybrid retrieval, and the confidence gate are each sub-10~ms and effectively free next to generation; LLM generation dominates end-to-end latency at $\sim$1.3~s mean for a 120-token-capped response. Peak VRAM with every model loaded simultaneously --- dense retriever, Whisper tiny, wav2vec2 plus adapter, and the fp16 LLM --- measured 1.54~GB, comfortably inside the 6~GB budget with $\sim$4.5~GB headroom. This lands in roughly the same sub-2-second ballpark reported for a comparable offline agricultural LLM system on comparable hardware \cite{dubey2025aahar}, which is consistent with, though not proof of, RQ3's premise holding once the speech, dialect-mapping, and confidence-gating layers are stacked on top of generation --- for this demo-scale, 42-passage KB. The LLM here runs in fp16; Section VI-H reports what happens when INT4/INT8 quantization is actually applied to this exact pipeline, which turns out to qualify rather than confirm the throughput expectations set by \cite{compactllm2026}. Retrieval latency over a production-scale KB (thousands of passages) also should not be extrapolated linearly from this 42-passage result.
+Table~\ref{tab:latency} reports steady-state per-stage latency on the RTX 3050 Laptop target (Fig.~\ref{fig:latency-chart} plots the same figures on a log scale to make the relative stage costs visible). Dialect mapping, hybrid retrieval, and the confidence gate are each sub-10~ms and effectively free next to generation; LLM generation dominates end-to-end latency at $\sim$1.3~s mean for a 120-token-capped response. Peak VRAM with every model loaded simultaneously --- dense retriever, Whisper tiny, wav2vec2 plus adapter, and the fp16 LLM --- measured 1.54~GB, comfortably inside the 6~GB budget with $\sim$4.5~GB headroom. This lands in roughly the same sub-2-second ballpark reported for a comparable offline agricultural LLM system on comparable hardware \cite{dubey2025aahar}, which is consistent with, though not proof of, RQ3's premise holding once the speech, dialect-mapping, and confidence-gating layers are stacked on top of generation --- for this demo-scale, 42-passage KB. The LLM here runs in fp16; Section VI-H reports what happens when INT4/INT8 quantization is actually applied to this exact pipeline, which turns out to qualify rather than confirm the throughput expectations set by \cite{compactllm2026}. Retrieval latency over a production-scale KB (thousands of passages) also should not be extrapolated linearly from this 42-passage result.
 
 \begin{table}[t]
 \caption{Steady-state per-stage latency, text-query path (prototype, RTX 3050 Laptop 6GB, $n{=}20$)}
@@ -318,8 +383,34 @@ LLM generation ($\le$120 tok)       & 1282.5~ms & 1476.4~ms \\
 \label{tab:latency}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=14pt,
+  width=\columnwidth,
+  height=4.2cm,
+  ymode=log,
+  ymin=0.05, ymax=3000,
+  ylabel={Mean latency (ms), log scale},
+  symbolic x coords={dm,hyb,gen},
+  xtick=data,
+  xticklabels={{Dialect map.},{Hybrid search},{LLM gen.}},
+  x tick label style={font=\scriptsize},
+  y tick label style={font=\scriptsize},
+  ylabel style={font=\scriptsize},
+  enlarge x limits=0.25,
+]
+\addplot[fill=vizblue, draw=black] coordinates {(dm,0.1) (hyb,3.8) (gen,1282.5)};
+\end{axis}
+\end{tikzpicture}
+\caption{Steady-state per-stage mean latency from Table~\ref{tab:latency}, log scale. Confidence-gate scoring (mean 0.0~ms, p95 0.1~ms) is omitted only because a log axis cannot render a zero value --- see Table~\ref{tab:latency} for its exact figure. LLM generation dominates end-to-end latency by roughly three orders of magnitude.}
+\label{fig:latency-chart}
+\end{figure}
+
 \subsection{Quantization Benchmark: An Unexpected Latency Regression}
-Section VI-G's latency figures use the LLM in fp16 and explicitly leave quantization --- the mechanism \cite{compactllm2026} reports as enabling practical on-device LLM inference at all --- untested against this exact pipeline. To close that gap, the generation stage alone (Qwen2.5-0.5B-Instruct) was re-benchmarked under INT8 and INT4 loading via \texttt{bitsandbytes}, each mode measured in its own fresh process on the same RTX 3050 Laptop GPU so that peak VRAM and latency are attributable to that mode alone rather than compounded across modes (Table~\ref{tab:quant}).
+Section VI-G's latency figures use the LLM in fp16 and explicitly leave quantization --- the mechanism \cite{compactllm2026} reports as enabling practical on-device LLM inference at all --- untested against this exact pipeline. To close that gap, the generation stage alone (Qwen2.5-0.5B-Instruct) was re-benchmarked under INT8 and INT4 loading via \texttt{bitsandbytes}, each mode measured in its own fresh process on the same RTX 3050 Laptop GPU so that peak VRAM and latency are attributable to that mode alone rather than compounded across modes (Table~\ref{tab:quant}, plotted in Fig.~\ref{fig:quant-chart}).
 
 Quantization reduces peak VRAM as expected for the LLM alone (fp16 0.95~GB $\to$ INT8 0.61~GB $\to$ INT4 0.47~GB), but --- contrary to the throughput improvements \cite{compactllm2026} reports for quantized inference on smartphone-class hardware --- both quantized modes are substantially \emph{slower} than fp16 on this GPU. INT8 averaged 6.1--6.8~s per query across three independent runs (roughly 5--6$\times$ slower than fp16's consistent $\sim$1.2~s), and INT4 averaged 1.8~s in the single run measured here (40--50\% slower; not independently repeated the way the INT8 figure above was). This is a genuine, informative negative result, not an implementation defect: \texttt{bitsandbytes}' INT8 path relies on an outlier-decomposition matmul whose overhead is known to dominate at small batch sizes and short sequence lengths on consumer (non-datacenter) GPU kernels, and a 0.5B-parameter model generating at most 120 tokens is close to a worst case for that overhead to be amortized away. This directly qualifies RQ3: the offline-deployment feasibility Section VI-G reports holds specifically for the fp16 configuration actually benchmarked there --- naively enabling INT8/INT4 quantization on this pipeline, on this GPU class, would make end-to-end latency \emph{worse}, not better, reversing the intuition that quantization is an unconditionally beneficial lever for offline deployment. Whether this reverses at larger model scale (where quantized kernels have more compute to amortize their overhead against) or on datacenter-class GPUs with dedicated low-precision tensor-core paths remains untested here and is a narrower, more concrete open question than the general quantization question this section previously left unaddressed.
 
@@ -338,6 +429,39 @@ INT4            & 1755.0~ms & 2401.5~ms & 0.47~GB \\
 \end{center}
 \label{tab:quant}
 \end{table}
+
+\begin{figure}[t]
+\centering
+\pgfplotsset{
+  every axis/.append style={
+    ybar,
+    bar width=16pt,
+    symbolic x coords={fp16,int8,int4},
+    xtick=data,
+    xticklabels={fp16,INT8,INT4},
+    x tick label style={font=\scriptsize},
+    y tick label style={font=\scriptsize},
+    ylabel style={font=\scriptsize},
+    nodes near coords,
+    nodes near coords style={font=\tiny},
+    enlarge x limits=0.3,
+  }
+}
+\begin{tikzpicture}
+\begin{groupplot}[
+  group style={group size=1 by 2, vertical sep=1.3cm},
+  width=\columnwidth,
+  height=3.6cm,
+]
+\nextgroupplot[ylabel={Mean latency (ms)}, ymin=0, ymax=7600]
+\addplot[fill=vizblue, draw=black] coordinates {(fp16,1176.3) (int8,6752.9) (int4,1755.0)};
+\nextgroupplot[ylabel={Peak VRAM (GB)}, ymin=0, ymax=1.1]
+\addplot[fill=vizorange, draw=black] coordinates {(fp16,0.95) (int8,0.61) (int4,0.47)};
+\end{groupplot}
+\end{tikzpicture}
+\caption{LLM generation stage from Table~\ref{tab:quant}: mean latency (top) vs.\ peak VRAM (bottom) across precision modes. Quantization reduces memory as expected but \emph{increases} latency on this consumer GPU, INT8 most severely.}
+\label{fig:quant-chart}
+\end{figure}
 
 \subsection{What This Prototype Does and Does Not Establish}
 Taken together, this prototype demonstrates that the architecture of Section III is buildable, that its four components compose into a working end-to-end pipeline (24 passing tests across retrieval, dialect mapping, the confidence gate, and full-pipeline smoke tests), and that on demo-scale data the mechanism behaves in the direction the paper's hypotheses predict for dialect mapping (RQ2) and offline latency (RQ3). It surfaces one genuine, still-open problem that a purely architectural proposal could not have discovered --- speech-native retrieval's generalization gap (RQ1, Section VI-D) --- and one that follow-up validation resolved rather than confirmed as a fundamental flaw: the confidence gate's apparent open-book signal weakness (Section VI-E) turned out, on re-validation against real LLM answers (Section VI-F), to be an artifact of the first validation set's template-quoting construction, with the signal showing genuine discriminative variance once that artifact was removed. A second follow-up measurement introduced a new, narrower open problem of its own: quantizing the local LLM (Section VI-H) reduces memory as expected but substantially \emph{increases} latency on this consumer GPU, directly qualifying RQ3's offline-feasibility finding to the fp16 configuration actually benchmarked. It does not establish that any of these results hold on real dialect speech, at production knowledge-base scale, on a different GPU class, or at a larger model scale, and it does not substitute for the dialect-stratified evaluation Section IV-B specifies on the target dialect, since the underlying speech data for that evaluation still does not exist. Section V's hypotheses are therefore still open exactly as stated; this section adds a real, if small and demo-scale, existence proof that the mechanism designed to test them runs, and shows that even the same prototype's own earlier findings can be revised --- in either direction --- by further honest measurement rather than assumed settled once reported.
