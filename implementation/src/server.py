@@ -12,10 +12,12 @@ Run with:
 """
 from __future__ import annotations
 
+import tempfile
 from contextlib import asynccontextmanager
 from dataclasses import asdict
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -61,3 +63,29 @@ def query(req: QueryRequest) -> dict:
         return {"error": "pipeline still loading, try again shortly"}
     result = pipeline.answer_text_query(req.text)
     return asdict(result)
+
+
+@app.post("/query-audio")
+async def query_audio(audio: UploadFile = File(...)) -> dict:
+    """ASR-cascaded audio path (Section IV-C baseline #1 / pipeline mode
+    "asr_cascade"): Whisper transcription -> dialect mapping -> hybrid
+    retrieval. The speech-native mode (answer_audio_query_speech_native) is
+    not exposed here -- see Section VI-D: its adapter does not generalize
+    past its training distribution, and it requires a trained adapter
+    checkpoint the demo does not assume is present.
+    """
+    if pipeline is None:
+        return {"error": "pipeline still loading, try again shortly"}
+
+    suffix = Path(audio.filename or "").suffix or ".webm"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(await audio.read())
+        tmp_path = Path(tmp.name)
+
+    try:
+        result = pipeline.answer_audio_query_asr_cascade(tmp_path)
+        return asdict(result)
+    except Exception as e:  # noqa: BLE001 -- demo endpoint: report to frontend, don't 500
+        return {"error": f"{type(e).__name__}: {e}"}
+    finally:
+        tmp_path.unlink(missing_ok=True)

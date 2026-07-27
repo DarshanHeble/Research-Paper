@@ -35,3 +35,4 @@ pytest==9.1.1
 # Demo backend (implementation/src/server.py)
 fastapi==0.139.0
 uvicorn==0.51.0
+python-multipart==0.0.20

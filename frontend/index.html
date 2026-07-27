@@ -57,19 +57,51 @@
   .field { margin-top: 0.6rem; }
   .field .label { font-size: 0.8rem; color: #888; }
   pre { white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; }
+  .modes { margin-top: 0.3rem; }
+  .mode-btn {
+    margin: 0;
+    margin-right: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+    border: 1px solid #8886;
+    background: transparent;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .mode-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  #record.recording { background: #dc2626; color: #fff; border-color: #dc2626; }
+  #playback { width: 100%; margin-top: 0.5rem; display: none; }
 </style>
 </head>
 <body>
 
 <h1>Speech-Native RAG Advisory — Demo</h1>
-<p class="sub">Text query → dialect mapping → hybrid retrieval → LLM generation → confidence gate</p>
+<p class="sub">Text or voice query → dialect mapping → hybrid retrieval → LLM generation → confidence gate</p>
 
 <label class="field">
   <span class="label">Backend URL</span>
   <input id="backend-url" value="http://localhost:8000" />
 </label>
 
-<textarea id="query" placeholder="e.g. Kapas ke phool aur tinde me gulabi sundi lag gayi hai">Kapas ke phool aur tinde me gulabi sundi lag gayi hai</textarea>
+<div class="field">
+  <span class="label">Mode</span>
+  <div class="modes">
+    <button type="button" class="mode-btn active" id="mode-text" data-mode="text">Type</button>
+    <button type="button" class="mode-btn" id="mode-voice" data-mode="voice">🎤 Record voice</button>
+  </div>
+</div>
+
+<div id="text-panel">
+  <textarea id="query" placeholder="e.g. Kapas ke phool aur tinde me gulabi sundi lag gayi hai">Kapas ke phool aur tinde me gulabi sundi lag gayi hai</textarea>
+</div>
+
+<div id="voice-panel" style="display:none;">
+  <button type="button" id="record">● Record</button>
+  <span id="rec-status" class="label"></span>
+  <audio id="playback" controls></audio>
+  <p class="sub" style="font-size:0.8rem;">Sent to <code>/query-audio</code> — transcribed with Whisper (ASR-cascade mode), then run through the same dialect-mapping → retrieval → gate path as text queries.</p>
+</div>
+
 <br />
 <button id="submit">Ask</button>
 <span id="status"></span>
@@ -95,22 +127,100 @@ function field(label, value) {
   return `<div class="field"><span class="label">${label}</span><div>${value}</div></div>`;
 }
 
-$('submit').addEventListener('click', async () => {
-  const query = $('query').value.trim();
-  if (!query) return;
+// ---- mode toggle -----------------------------------------------------
+let mode = 'text';
+let recordedBlob = null;
 
+function setMode(next) {
+  mode = next;
+  $('mode-text').classList.toggle('active', mode === 'text');
+  $('mode-voice').classList.toggle('active', mode === 'voice');
+  $('text-panel').style.display = mode === 'text' ? '' : 'none';
+  $('voice-panel').style.display = mode === 'voice' ? '' : 'none';
+}
+$('mode-text').addEventListener('click', () => setMode('text'));
+$('mode-voice').addEventListener('click', () => setMode('voice'));
+
+// ---- voice recording (MediaRecorder) ---------------------------------
+let mediaRecorder = null;
+let chunks = [];
+
+$('record').addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      recordedBlob = new Blob(chunks, { type: 'audio/webm' });
+      const playback = $('playback');
+      playback.src = URL.createObjectURL(recordedBlob);
+      playback.style.display = 'block';
+      stream.getTracks().forEach((t) => t.stop());
+      $('record').textContent = '● Record';
+      $('record').classList.remove('recording');
+      $('rec-status').textContent = 'recorded — ready to send';
+    };
+    mediaRecorder.start();
+    $('record').textContent = '■ Stop';
+    $('record').classList.add('recording');
+    $('rec-status').textContent = 'recording...';
+  } catch (e) {
+    $('rec-status').textContent = `mic access failed: ${e}`;
+  }
+});
+
+// ---- submit ------------------------------------------------------------
+$('submit').addEventListener('click', async () => {
   const resultEl = $('result');
-  resultEl.style.display = 'block';
-  resultEl.className = '';
-  resultEl.innerHTML = 'Running pipeline...';
-  $('submit').disabled = true;
+  let res;
+
+  if (mode === 'text') {
+    const query = $('query').value.trim();
+    if (!query) return;
+    resultEl.style.display = 'block';
+    resultEl.className = '';
+    resultEl.innerHTML = 'Running pipeline...';
+    $('submit').disabled = true;
+    try {
+      res = await fetch($('backend-url').value + '/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: query }),
+      });
+    } catch (e) {
+      resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
+      $('submit').disabled = false;
+      return;
+    }
+  } else {
+    if (!recordedBlob) {
+      $('rec-status').textContent = 'record something first';
+      return;
+    }
+    resultEl.style.display = 'block';
+    resultEl.className = '';
+    resultEl.innerHTML = 'Transcribing (Whisper) and running pipeline...';
+    $('submit').disabled = true;
+    const form = new FormData();
+    form.append('audio', recordedBlob, 'query.webm');
+    try {
+      res = await fetch($('backend-url').value + '/query-audio', {
+        method: 'POST',
+        body: form,
+      });
+    } catch (e) {
+      resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
+      $('submit').disabled = false;
+      return;
+    }
+  }
 
   try {
-    const res = await fetch($('backend-url').value + '/query', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: query }),
-    });
     const r = await res.json();
 
     if (r.error) {
@@ -125,6 +235,7 @@ $('submit').addEventListener('click', async () => {
         <span class="badge">${r.escalate ? 'ESCALATED' : 'ANSWERED'}</span>
       </div>
       <pre>${r.answer}</pre>
+      ${mode === 'voice' ? field('Transcript (Whisper ASR)', r.original_query ?? '—') : ''}
       ${field('Normalized query', r.normalized_query ?? '—')}
       ${field('Matched dialect terms', (r.matched_dialect_terms || []).join(', ') || '—')}
       ${field('Top-1 retrieved passage', `${r.top1_title ?? '—'} (score=${r.top1_score?.toFixed(4) ?? '—'})`)}

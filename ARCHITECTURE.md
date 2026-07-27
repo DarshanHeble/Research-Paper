@@ -24,11 +24,11 @@ stops both.
 
 ## 1. The one-sentence version
 
-A farmer's query (typed text today; audio in two other modes the pipeline
-already supports) goes to a small Python backend that runs the same
-`AdvisoryPipeline` used in the CLI and tests, and a browser page shows the
-retrieved passage, the confidence-gate decision, and the final answer or
-escalation message.
+A farmer's query — typed text, or recorded voice transcribed via the
+ASR-cascade path (the speech-native mode remains CLI/eval-only, see Section 6
+below) — goes to a small Python backend that runs the same `AdvisoryPipeline`
+used in the CLI and tests, and a browser page shows the retrieved passage,
+the confidence-gate decision, and the final answer or escalation message.
 
 ## 2. Component diagram
 
@@ -68,11 +68,12 @@ where the multi-second one-time load costs in
 `implementation/README.md`'s latency table come from), and exposes it over
 HTTP.
 
-**Planned endpoints:**
+**Endpoints:**
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | `POST` | `/query` | `{"text": "..."}` | `PipelineResult` fields as JSON: `answer`, `answer_source`, `confidence`, `escalate`, `top1_title`, `top1_score`, `normalized_query`, `matched_dialect_terms`, `timings_sec` |
+| `POST` | `/query-audio` | `multipart/form-data`, field `audio` (webm/wav/etc.) | Same `PipelineResult` JSON as `/query`, plus `original_query` holding the Whisper transcript. Runs `answer_audio_query_asr_cascade` (Section IV-C baseline #1 / pipeline mode `asr_cascade`): Whisper transcription → dialect mapping → hybrid retrieval → generation → gate. |
 | `GET` | `/health` | — | `{"status": "ok", "llm_loaded": true/false}` — useful to show the guide that generation is real LLM vs. template fallback |
 
 `PipelineResult` (`implementation/src/pipeline.py:42`) is already a
@@ -129,10 +130,11 @@ sequenceDiagram
 |---|---|
 | `AdvisoryPipeline` (all retrieval/mapping/generation/gate logic) | **Built**, tested, working — `implementation/src/pipeline.py` |
 | CLI entry point | **Built** — `python -m src.pipeline "query"` |
-| Backend HTTP wrapper (FastAPI app, `/query`, `/health`) | **Built** — `implementation/src/server.py` |
-| Frontend page | **Built** — `frontend/index.html` |
+| Backend HTTP wrapper (FastAPI app, `/query`, `/query-audio`, `/health`) | **Built** — `implementation/src/server.py` |
+| Frontend page (text input + voice recording) | **Built** — `frontend/index.html` (mode toggle, `MediaRecorder`-based mic capture) |
 | One-command startup (`./start.sh`) | **Built** — starts backend + frontend, waits for health check |
-| Audio upload support (asr_cascade / speech_native modes) | Pipeline methods already exist (`answer_audio_query_asr_cascade`, `answer_audio_query_speech_native`); not wired to an endpoint yet — text-only is the minimal demo path |
+| Audio upload support, ASR-cascade mode | **Built** — `POST /query-audio` wraps `answer_audio_query_asr_cascade`; frontend records mic audio (`audio/webm`) and posts it as multipart form data |
+| Audio upload support, speech-native mode | Pipeline method exists (`answer_audio_query_speech_native`) but not wired to an endpoint — Section VI-D shows this adapter does not generalize past its training distribution (0.020 recall@1 on held-out queries), so it is not exposed in the demo path |
 
 ## 7. Notes for the guide walkthrough
 
