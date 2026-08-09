@@ -2,255 +2,701 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Speech-Native RAG Advisory — Demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agricultural Extension Advisory</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    --primary: #2a5a3b;      /* Deep forest green */
+    --primary-hover: #1e422a;
+    --accent: #e6f0e9;       /* Very light sage */
+    --surface: #ffffff;
+    --background: #f4f7f5;   /* Off-white with a hint of green */
+    --text-dark: #1c2b20;
+    --text-muted: #5b7062;
+    --border: #d2e0d7;
+    --success: #059669;
+    --warning: #d97706;
+    --error: #dc2626;
+  }
+  
   body {
-    font-family: system-ui, sans-serif;
-    max-width: 760px;
-    margin: 2.5rem auto;
-    padding: 0 1rem;
-    line-height: 1.5;
-  }
-  h1 { font-size: 1.3rem; margin-bottom: 0.2rem; }
-  p.sub { color: #888; margin-top: 0; }
-  textarea {
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 1rem;
-    padding: 0.6rem;
-    min-height: 4.5rem;
-    resize: vertical;
-  }
-  #backend-url {
-    width: 100%;
-    box-sizing: border-box;
-    font-size: 0.85rem;
-    padding: 0.4rem;
-    margin-bottom: 0.6rem;
-    color: #888;
-  }
-  button {
-    margin-top: 0.6rem;
-    padding: 0.5rem 1.2rem;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  #status { margin-top: 0.6rem; color: #888; font-size: 0.9rem; }
-  #result {
-    margin-top: 1.2rem;
-    border: 1px solid #8883;
-    border-radius: 8px;
-    padding: 1rem;
-    display: none;
-  }
-  #result.escalate { border-color: #d97706; }
-  #result.answered { border-color: #16a34a; }
-  .badge {
-    display: inline-block;
-    font-size: 0.75rem;
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    background: #8882;
-    margin-left: 0.4rem;
-  }
-  .field { margin-top: 0.6rem; }
-  .field .label { font-size: 0.8rem; color: #888; }
-  pre { white-space: pre-wrap; word-break: break-word; font-size: 0.85rem; }
-  .modes { margin-top: 0.3rem; }
-  .mode-btn {
     margin: 0;
-    margin-right: 0.4rem;
-    padding: 0.35rem 0.8rem;
-    font-size: 0.85rem;
-    border: 1px solid #8886;
-    background: transparent;
-    border-radius: 999px;
-    cursor: pointer;
+    padding: 0;
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--background);
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(42, 90, 59, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(217, 119, 6, 0.05) 0px, transparent 50%);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
-  .mode-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-  #record.recording { background: #dc2626; color: #fff; border-color: #dc2626; }
-  #playback { width: 100%; margin-top: 0.5rem; display: none; }
+
+  .navbar {
+    width: 100%;
+    background-color: var(--surface);
+    padding: 1.25rem 2rem;
+    box-shadow: 0 4px 20px rgba(42, 90, 59, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    box-sizing: border-box;
+  }
+
+  .navbar-content {
+    max-width: 800px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .logo-icon {
+    font-size: 1.75rem;
+    background: var(--accent);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: var(--primary);
+  }
+
+  .navbar h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.02em;
+  }
+
+  .navbar p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 800px;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(42, 90, 59, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 15px 50px rgba(42, 90, 59, 0.09);
+  }
+
+  .field-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .field-group label {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+  }
+
+  .input-wrapper {
+    position: relative;
+  }
+
+  textarea, input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 1.05rem;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background-color: #fafcfb;
+    color: var(--text-dark);
+    transition: all 0.2s ease;
+  }
+
+  textarea:focus, input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: var(--surface);
+    box-shadow: 0 0 0 4px rgba(42, 90, 59, 0.1);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+  }
+
+  .hint {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 1rem;
+  }
+
+  .btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(42, 90, 59, 0.2);
+  }
+
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #d1d5db;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .status-indicator.ready { background-color: var(--success); box-shadow: 0 0 8px rgba(5, 150, 105, 0.4); }
+  .status-indicator.error { background-color: var(--error); box-shadow: 0 0 8px rgba(220, 38, 38, 0.4); }
+
+  /* Results Section */
+  #result { 
+    display: none; 
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--primary);
+  }
+
+  .badge-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .badge {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-answered { background-color: #ecfdf5; color: var(--success); border: 1px solid #a7f3d0; }
+  .badge-escalated { background-color: #fffbeb; color: var(--warning); border: 1px solid #fde68a; }
+  .badge-source { background-color: var(--accent); color: var(--primary); border: 1px solid var(--border); }
+
+  .answer-content {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: #fafcfb;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--success);
+    border-radius: 12px;
+    white-space: pre-wrap;
+    color: var(--text-dark);
+  }
+
+  .answer-content.escalated {
+    border-left-color: var(--warning);
+    background-color: #fffbeb;
+    border-color: #fde68a;
+  }
+
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .meta-item {
+    background-color: var(--surface);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(42, 90, 59, 0.03);
+    transition: transform 0.2s ease;
+  }
+
+  .meta-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(42, 90, 59, 0.06);
+  }
+
+  .meta-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+
+  .meta-value {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 500;
+    color: var(--text-dark);
+  }
+
+  .timings {
+    margin-top: 2rem;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: #f8faf9;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    white-space: pre-wrap;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .tab-btn:hover {
+    color: var(--primary);
+    background-color: var(--accent);
+  }
+
+  .tab-btn.active {
+    color: var(--primary);
+    background-color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--primary);
+  }
+
+  .mode-section { display: none; }
+  .mode-section.active { display: block; }
+
+  .rec-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #fafcfb;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+  }
+
+  .mic-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--primary);
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(42, 90, 59, 0.2);
+  }
+
+  .mic-btn.recording {
+    background-color: var(--error);
+    animation: pulse 1.2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    70% { box-shadow: 0 0 0 15px rgba(220, 38, 38, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  }
+
+  audio {
+    width: 100%;
+    margin-top: 1rem;
+    border-radius: 8px;
+  }
+
+  .loader {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 600px) {
+    .card { padding: 1.5rem; }
+    .result-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+    .tabs { flex-wrap: wrap; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Speech-Native RAG Advisory — Demo</h1>
-<p class="sub">Text or voice query → dialect mapping → hybrid retrieval → LLM generation → confidence gate</p>
-
-<label class="field">
-  <span class="label">Backend URL</span>
-  <input id="backend-url" value="http://localhost:8000" />
-</label>
-
-<div class="field">
-  <span class="label">Mode</span>
-  <div class="modes">
-    <button type="button" class="mode-btn active" id="mode-text" data-mode="text">Type</button>
-    <button type="button" class="mode-btn" id="mode-voice" data-mode="voice">🎤 Record voice</button>
+<div class="navbar">
+  <div class="navbar-content">
+    <div class="logo-icon">🌱</div>
+    <div>
+      <h1>Agricultural Extension Advisory</h1>
+      <p>Speech-Native RAG Tool for Field Workers</p>
+    </div>
   </div>
 </div>
 
-<div id="text-panel">
-  <textarea id="query" placeholder="e.g. Kapas ke phool aur tinde me gulabi sundi lag gayi hai">Kapas ke phool aur tinde me gulabi sundi lag gayi hai</textarea>
+<div class="container">
+  
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" data-mode="text">📝 Text Query</button>
+      <button class="tab-btn" data-mode="record">🎙️ Live Voice Record</button>
+      <button class="tab-btn" data-mode="file">📁 Audio File</button>
+    </div>
+
+    <!-- Text Input Section -->
+    <div id="mode-text" class="mode-section active">
+      <div class="field-group">
+        <label for="query">Farmer Query</label>
+        <div class="input-wrapper">
+          <textarea id="query" placeholder="Enter symptoms or pest descriptions... (e.g. Kapas ke phool aur tinde me gulabi sundi lag gayi hai)">Kapas ke phool aur tinde me gulabi sundi lag gayi hai</textarea>
+        </div>
+        <div class="hint">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+          Testing dialectal mapping? Use regional phrasing.
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice Recording Section -->
+    <div id="mode-record" class="mode-section">
+      <div class="field-group">
+        <label>Record Farmer Voice Query</label>
+        <div class="rec-controls">
+          <button id="record-btn" class="mic-btn" type="button" title="Click to Record">🎙️</button>
+          <span id="record-status" style="font-weight: 500; color: var(--text-muted);">Click microphone to start recording</span>
+          <audio id="audio-preview" controls style="display:none;"></audio>
+        </div>
+        <div class="hint">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+          Microphone stream is processed locally via Whisper ASR + Dialect Mapping.
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio File Upload Section -->
+    <div id="mode-file" class="mode-section">
+      <div class="field-group">
+        <label for="audio-file">Upload Audio Recording (.wav, .webm, .mp3, .m4a)</label>
+        <div class="input-wrapper">
+          <input id="audio-file" type="file" accept="audio/*" />
+        </div>
+        <audio id="file-audio-preview" controls style="display:none;"></audio>
+      </div>
+    </div>
+
+    <button id="submit" class="btn">
+      <span id="btn-text">Generate Advisory</span>
+      <div class="loader" id="loader"></div>
+    </button>
+    
+    <div class="status-bar">
+      <div class="status-indicator" id="status-dot"></div>
+      <span id="status-text">Connecting to local system...</span>
+    </div>
+
+    <div class="field-group" style="margin-top: 1.5rem; display: none;">
+      <label for="backend-url">System Backend URL</label>
+      <input id="backend-url" type="text" value="http://localhost:8000" />
+    </div>
+  </div>
+
+  <div id="result" class="card"></div>
+
 </div>
-
-<div id="voice-panel" style="display:none;">
-  <button type="button" id="record">● Record</button>
-  <span id="rec-status" class="label"></span>
-  <audio id="playback" controls></audio>
-  <p class="sub" style="font-size:0.8rem;">Sent to <code>/query-audio</code> — transcribed with Whisper (ASR-cascade mode), then run through the same dialect-mapping → retrieval → gate path as text queries.</p>
-</div>
-
-<br />
-<button id="submit">Ask</button>
-<span id="status"></span>
-
-<div id="result"></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
 
-async function checkHealth() {
-  try {
-    const res = await fetch($('backend-url').value + '/health');
-    const data = await res.json();
-    $('status').textContent = data.llm_loaded
-      ? 'backend: ready (real LLM loaded)'
-      : 'backend: ready (template fallback -- no LLM loaded)';
-  } catch {
-    $('status').textContent = 'backend: unreachable';
-  }
-}
-
-function field(label, value) {
-  return `<div class="field"><span class="label">${label}</span><div>${value}</div></div>`;
-}
-
-// ---- mode toggle -----------------------------------------------------
-let mode = 'text';
+let currentMode = 'text';
+let mediaRecorder = null;
+let audioChunks = [];
 let recordedBlob = null;
 
-function setMode(next) {
-  mode = next;
-  $('mode-text').classList.toggle('active', mode === 'text');
-  $('mode-voice').classList.toggle('active', mode === 'voice');
-  $('text-panel').style.display = mode === 'text' ? '' : 'none';
-  $('voice-panel').style.display = mode === 'voice' ? '' : 'none';
-}
-$('mode-text').addEventListener('click', () => setMode('text'));
-$('mode-voice').addEventListener('click', () => setMode('voice'));
+// Tab Switching Logic
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+    
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    $(`mode-${currentMode}`).classList.add('active');
+  });
+});
 
-// ---- voice recording (MediaRecorder) ---------------------------------
-let mediaRecorder = null;
-let chunks = [];
+// Microphone Recording Logic
+const recordBtn = $('record-btn');
+const recordStatus = $('record-status');
+const audioPreview = $('audio-preview');
 
-$('record').addEventListener('click', async () => {
-  if (mediaRecorder && mediaRecorder.state === 'recording') {
+recordBtn.addEventListener('click', async () => {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        recordedBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        audioPreview.src = URL.createObjectURL(recordedBlob);
+        audioPreview.style.display = 'block';
+        recordStatus.textContent = 'Recording captured! Click Generate Advisory to submit.';
+      };
+
+      mediaRecorder.start();
+      recordBtn.classList.add('recording');
+      recordBtn.textContent = '⏹️';
+      recordStatus.textContent = 'Recording in progress... Click again to stop.';
+    } catch (err) {
+      alert('Microphone access denied or not supported: ' + err.message);
+    }
+  } else if (mediaRecorder.state === 'recording') {
     mediaRecorder.stop();
-    return;
-  }
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    chunks = [];
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-    mediaRecorder.onstop = () => {
-      recordedBlob = new Blob(chunks, { type: 'audio/webm' });
-      const playback = $('playback');
-      playback.src = URL.createObjectURL(recordedBlob);
-      playback.style.display = 'block';
-      stream.getTracks().forEach((t) => t.stop());
-      $('record').textContent = '● Record';
-      $('record').classList.remove('recording');
-      $('rec-status').textContent = 'recorded — ready to send';
-    };
-    mediaRecorder.start();
-    $('record').textContent = '■ Stop';
-    $('record').classList.add('recording');
-    $('rec-status').textContent = 'recording...';
-  } catch (e) {
-    $('rec-status').textContent = `mic access failed: ${e}`;
+    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    recordBtn.classList.remove('recording');
+    recordBtn.textContent = '🎙️';
   }
 });
 
-// ---- submit ------------------------------------------------------------
+// Audio File Preview
+$('audio-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const fileAudio = $('file-audio-preview');
+    fileAudio.src = URL.createObjectURL(file);
+    fileAudio.style.display = 'block';
+  }
+});
+
+async function checkHealth() {
+  const dot = $('status-dot');
+  const text = $('status-text');
+  try {
+    const res = await fetch($('backend-url').value + '/health');
+    const data = await res.json();
+    dot.className = 'status-indicator ready';
+    text.textContent = data.llm_loaded
+      ? 'System Online (Local LLM Active)'
+      : 'System Online (Template Fallback)';
+  } catch {
+    dot.className = 'status-indicator error';
+    text.textContent = 'System Offline (Cannot reach backend)';
+  }
+}
+
+function metaItem(label, value) {
+  return `<div class="meta-item">
+            <span class="meta-label">${label}</span>
+            <span class="meta-value">${value}</span>
+          </div>`;
+}
+
 $('submit').addEventListener('click', async () => {
   const resultEl = $('result');
-  let res;
+  const btn = $('submit');
+  const btnText = $('btn-text');
+  const loader = $('loader');
 
-  if (mode === 'text') {
-    const query = $('query').value.trim();
-    if (!query) return;
-    resultEl.style.display = 'block';
-    resultEl.className = '';
-    resultEl.innerHTML = 'Running pipeline...';
-    $('submit').disabled = true;
-    try {
-      res = await fetch($('backend-url').value + '/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: query }),
-      });
-    } catch (e) {
-      resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
-      $('submit').disabled = false;
-      return;
-    }
-  } else {
-    if (!recordedBlob) {
-      $('rec-status').textContent = 'record something first';
-      return;
-    }
-    resultEl.style.display = 'block';
-    resultEl.className = '';
-    resultEl.innerHTML = 'Transcribing (Whisper) and running pipeline...';
-    $('submit').disabled = true;
-    const form = new FormData();
-    form.append('audio', recordedBlob, 'query.webm');
-    try {
-      res = await fetch($('backend-url').value + '/query-audio', {
-        method: 'POST',
-        body: form,
-      });
-    } catch (e) {
-      resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
-      $('submit').disabled = false;
-      return;
-    }
+  let endpoint = '/query';
+  let requestOptions = {};
+
+  if (currentMode === 'text') {
+    const textQuery = $('query').value.trim();
+    if (!textQuery) return alert('Please enter a query string.');
+    endpoint = '/query';
+    requestOptions = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: textQuery })
+    };
+  } else if (currentMode === 'record') {
+    if (!recordedBlob) return alert('Please record an audio query first.');
+    endpoint = '/query-audio';
+    const formData = new FormData();
+    formData.append('audio', recordedBlob, 'recorded_query.webm');
+    requestOptions = { method: 'POST', body: formData };
+  } else if (currentMode === 'file') {
+    const file = $('audio-file').files[0];
+    if (!file) return alert('Please select an audio file to upload.');
+    endpoint = '/query-audio';
+    const formData = new FormData();
+    formData.append('audio', file, file.name);
+    requestOptions = { method: 'POST', body: formData };
   }
 
+  resultEl.style.display = 'none';
+  btn.disabled = true;
+  btnText.textContent = 'Processing (Whisper ASR / Pipeline)...';
+  loader.style.display = 'block';
+
   try {
+    const res = await fetch($('backend-url').value + endpoint, requestOptions);
     const r = await res.json();
 
     if (r.error) {
-      resultEl.innerHTML = `<strong>Error:</strong> ${r.error}`;
-      return;
-    }
+      resultEl.innerHTML = `
+        <div class="result-header">
+          <h2 class="result-title">System Error</h2>
+        </div>
+        <div class="answer-content escalated">${r.error}</div>
+      `;
+    } else {
+      const isEscalated = r.escalate;
+      
+      resultEl.innerHTML = `
+        <div class="result-header">
+          <h2 class="result-title">Advisory Report</h2>
+          <div class="badge-group">
+            <span class="badge badge-source">Mode: ${r.mode}</span>
+            <span class="badge badge-source">${r.answer_source}</span>
+            <span class="badge ${isEscalated ? 'badge-escalated' : 'badge-answered'}">
+              ${isEscalated ? 'Manual Review Required' : 'Automated Answer'}
+            </span>
+          </div>
+        </div>
+        
+        <div class="answer-content ${isEscalated ? 'escalated' : ''}">${r.answer}</div>
+        
+        <div class="metadata-grid">
+          ${metaItem('Original Query / Transcript', r.original_query ?? '—')}
+          ${metaItem('Normalized Query', r.normalized_query ?? '—')}
+          ${metaItem('Matched Dialect Terms', (r.matched_dialect_terms || []).join(', ') || 'None')}
+          ${metaItem('Knowledge Base Match', `${r.top1_title ?? '—'} <br><span style="font-size:0.85rem;color:var(--text-muted);font-weight:400;">(Score: ${r.top1_score?.toFixed(4) ?? '—'})</span>`)}
+          ${metaItem('System Confidence', `${r.confidence?.toFixed(3) ?? '—'} / 1.000`)}
+        </div>
 
-    resultEl.className = r.escalate ? 'escalate' : 'answered';
-    resultEl.innerHTML = `
-      <div><strong>Answer</strong>
-        <span class="badge">${r.answer_source}</span>
-        <span class="badge">${r.escalate ? 'ESCALATED' : 'ANSWERED'}</span>
-      </div>
-      <pre>${r.answer}</pre>
-      ${mode === 'voice' ? field('Transcript (Whisper ASR)', r.original_query ?? '—') : ''}
-      ${field('Normalized query', r.normalized_query ?? '—')}
-      ${field('Matched dialect terms', (r.matched_dialect_terms || []).join(', ') || '—')}
-      ${field('Top-1 retrieved passage', `${r.top1_title ?? '—'} (score=${r.top1_score?.toFixed(4) ?? '—'})`)}
-      ${field('Confidence', r.confidence?.toFixed(3) ?? '—')}
-      ${field('Timings (sec)', `<pre>${JSON.stringify(r.timings_sec, null, 2)}</pre>`)}
-    `;
+        <div class="timings">Execution Pipeline Timings (s):\n${JSON.stringify(r.timings_sec, null, 2).replace(/[{}"]/g, '').trim()}</div>
+      `;
+    }
+    
+    resultEl.style.display = 'block';
+    setTimeout(() => {
+      resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   } catch (e) {
-    resultEl.innerHTML = `<strong>Request failed:</strong> ${e}`;
+    resultEl.innerHTML = `
+      <div class="result-header">
+        <h2 class="result-title">Connection Error</h2>
+      </div>
+      <div class="answer-content escalated">Failed to connect to the backend server. Please verify it is running.</div>
+    `;
+    resultEl.style.display = 'block';
   } finally {
-    $('submit').disabled = false;
+    btn.disabled = false;
+    btnText.textContent = 'Generate Advisory';
+    loader.style.display = 'none';
   }
 });
 
 checkHealth();
+setInterval(checkHealth, 10000);
 </script>
 
 </body>
 </html>
+
