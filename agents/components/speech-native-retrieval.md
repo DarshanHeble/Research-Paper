@@ -8,18 +8,20 @@ vocabulary?
 
 A real, working version of this mechanism exists at
 `implementation/src/speech_retrieval/{adapter,train_adapter,speech_retriever}.py`
-— a frozen wav2vec2-base encoder feeding a small trained MLP adapter into the
-same embedding space as the dense text retriever, trained with an in-batch
-InfoNCE contrastive loss. It trains in ~20s on a consumer GPU (RTX 3050 6GB)
-and reaches 55.6-61.1% top-1 accuracy on its own held-out validation split
-across two independent training runs on two machines (vs. 2.4% chance for
-42-way retrieval) — real, reproduced evidence the SpeechRAG/S2R-style
-mechanism works end to end on this hardware. It does **not** generalize to
-`implementation/data/eval_queries.jsonl`'s differently-phrased queries
-(0-2% recall@1 there, i.e. effectively chance, in both runs) — a real,
-reported generalization gap, not a bug, and not a resolution of RQ1: there is
-still no real target-dialect speech data to train or evaluate on, so RQ1 as
-the paper poses it remains open. See `implementation/README.md` §2 for the
+— a frozen wav2vec2 encoder (the ASR-fine-tuned `facebook/wav2vec2-base-960h`
+checkpoint, used only for hidden states; no transcript is decoded) feeding a
+small MLP adapter into the dense text retriever's embedding space. The first
+version (108 English templates aligned to passage embeddings) hit 61.1% on its
+own template val split but 0.020 recall@1 (chance) on
+`implementation/data/eval_queries.jsonl`. The current recipe trains on KB
+passage sentences + entity-alias templates + romanized-Hindi lexicon-term
+templates, 3 TTS voice/speed variants (~1 min on an RTX 3050), distilling each
+clip to the text embedding of its own sentence (dialect sentences: of the
+lexicon-normalized sentence -- embedding-space dialect mapping). Held-out
+recall@1 is now 0.127 (3-seed mean; dialectal 0.141 vs. ASR cascade 0.038),
+`implementation/data/speech_native_ablation.json`. Real but weak, far below
+text-input retrieval, and all on synthetic TTS audio: RQ1 as the paper poses
+it remains open. See `implementation/README.md` §2 for the
 full numbers and discussion, and `main.tex` Section VI-D for the paper's own
 report of this result.
 

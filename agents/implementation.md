@@ -26,9 +26,10 @@ number from it anywhere else (including in the paper). The summary:
   measured, clean confirmation of the RQ2/RQ4 premise on this demo scale,
   with the caveat that it needs re-testing at a larger, messier KB scale.
 - Two honest negative/partial results worth knowing before reading further:
-  the trained speech-native adapter reaches 61.1% top-1 accuracy on its own
-  held-out split but ~2% (effectively chance) on the differently-phrased eval
-  set (a real generalization gap, not a bug); and the confidence gate's
+  the speech-native adapter's first version reached 61.1% on its own
+  template split but ~2% (chance) on the eval set; retraining with sentence
+  distillation + embedding-space dialect mapping lifted that to 0.127
+  (3-seed mean) -- a real but weak signal, still far below text input; and the confidence gate's
   open-book signal turned out to carry almost no discriminative power in this
   run because the templated answers quote their own retrieved passage
   verbatim (a concrete, discovered instance of the `intrygue2026` warning
@@ -164,11 +165,11 @@ the speech embeddings and the dialect-mapped entities feed into.
   target-dialect speech corpus exists — this remains the central blocker for
   actually answering RQ1 and RQ2 as the paper poses them, not something a
   software prototype can solve on its own.
-- **Embedding-space dialect mapping** (architecture #2 in
-  `agents/components/dialect-entity-mapping.md`) — the prototype only
-  implements the simpler post-transcription lexicon-lookup version, so
-  dialect mapping and speech-native retrieval don't currently compose (see
-  `implementation/src/pipeline.py`'s module docstring).
+- **Learned embedding-space dialect mapping** (architecture #2 in
+  `agents/components/dialect-entity-mapping.md`) — the prototype implements
+  a lexicon-derived version (normalized distillation targets at adapter
+  training time, see `train_adapter.py`), not a learned alignment, and only
+  on synthetic TTS audio.
 - **Quantization latency regression, unexplained beyond a plausible
   mechanism.** Whether the INT8/INT4 slowdown found here reverses at larger
   model scale or on datacenter-class GPUs with dedicated low-precision

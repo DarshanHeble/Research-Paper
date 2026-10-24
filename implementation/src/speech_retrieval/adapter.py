@@ -60,7 +60,7 @@ class FrozenSpeechEncoder:
     train) since this encoder is always frozen/eval-mode and does audio I/O.
     """
 
-    def __init__(self, model_name: str = "facebook/wav2vec2-base", device: str | None = None):
+    def __init__(self, model_name: str = "facebook/wav2vec2-base-960h", device: str | None = None):
         from transformers import Wav2Vec2FeatureExtractor, Wav2Vec2Model
 
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")

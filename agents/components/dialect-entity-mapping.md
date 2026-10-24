@@ -16,10 +16,14 @@ prototype's measured results: recall@1 on dialectal queries goes from ~0.0
 (every retrieval baseline without it) to **0.615** once the mapping layer is
 applied (`implementation/data/evaluation_results.json`) — a real, clean
 confirmation of this component's premise at demo scale, though it needs
-re-testing at a larger, messier KB before trusting that specific number. Not
-yet implemented: the embedding-space mapping path, so this mechanism doesn't
-currently compose with speech-native retrieval (see
-`implementation/src/pipeline.py`'s docstring). See `implementation/README.md`
+re-testing at a larger, messier KB before trusting that specific number. The
+embedding-space path exists in a lightweight form: the same lexicon is applied
+at speech-adapter TRAINING time to produce normalized distillation targets
+(`implementation/src/speech_retrieval/train_adapter.py`), so speech-native
+retrieval gets dialect mapping with no transcript at inference. Ablation
+(`implementation/scripts/speech_native_ablation.py`): dialectal speech-native
+recall@1 0.141 with normalized targets vs. 0.038 raw (3-seed means, synthetic
+TTS audio). A learned, non-lexicon alignment remains future work. See `implementation/README.md`
 §1 for the full comparison table.
 
 ## What it is

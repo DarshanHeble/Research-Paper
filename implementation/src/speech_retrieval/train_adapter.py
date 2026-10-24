@@ -6,16 +6,29 @@ paper is explicit that the target dialect speech corpus does not exist yet (see
 agents/components/speech-native-retrieval.md, "Because dialect-specific speech
 corpora barely exist..."). This script does NOT claim to fix that. Instead it:
 
-  1. Auto-generates a handful of short templated English query sentences per
-     KB passage (e.g. "What can I do about pink bollworm in Cotton?") -- NOT
-     the eval_queries.jsonl sentences, so the eval set stays genuinely held out.
-  2. Synthesizes each with espeak-ng's English voice (src/tts_util.py) -- so the
-     "speech" here is synthetic TTS audio of standard English phrasing, not real
-     recorded farmer speech in any dialect.
-  3. Extracts frozen wav2vec2-base features for that audio and trains the small
-     adapter (adapter.py) with an in-batch InfoNCE contrastive loss to align
-     each utterance's pooled speech features with the frozen dense retriever's
-     text embedding of the SAME passage it was generated from.
+  1. Builds training sentences from three sources, none of which read
+     eval_queries.jsonl (the eval set stays genuinely held out):
+       a. every sentence of every KB passage (symptom/management vocabulary);
+       b. short English templates over EVERY entity alias of each passage;
+       c. short romanized-Hindi templates over every dialect_lexicon.json term
+          (e.g. "Mere Cotton me gulabi sundi lag gayi hai"). The eval set reuses
+          the same lexicon terms by design -- exactly as the text-mode mapper
+          uses the lexicon at test time -- but never the same sentences.
+  2. Synthesizes each sentence with several espeak-ng English voices and speeds
+     (src/tts_util.py) as cheap acoustic augmentation -- still synthetic TTS,
+     not real recorded farmer speech in any dialect.
+  3. Extracts frozen wav2vec2-base features and trains the small adapter
+     (adapter.py) to reproduce the frozen text retriever's embedding of the
+     utterance's OWN text (speech->text-embedding distillation, as in
+     SpeechRAG), with an in-batch InfoNCE + cosine loss.
+
+Embedding-space dialect mapping ("architecture #2-lite"): for a dialect
+sentence (source c), the distillation target is the text embedding of the
+DialectMapper-NORMALIZED sentence, not the raw one. The adapter thereby learns
+to emit, straight from audio, the embedding the text path would have produced
+after lexicon normalization -- so the speech-native path gets dialect mapping
+with no transcript at inference time. The lexicon is used only at training
+time.
 
 This demonstrates the MECHANISM -- that a small adapter can learn to project
 speech-encoder output into a frozen text-retriever's embedding space well enough
@@ -29,6 +42,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import time
 from pathlib import Path
 
@@ -36,21 +50,30 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from src.dialect_mapping.mapper import DialectMapper
 from src.retrieval.dense_retriever import DenseRetriever
 from src.speech_retrieval.adapter import FrozenSpeechEncoder, SpeechToRetrievalAdapter
 from src.tts_util import synthesize
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 KB_PATH = REPO_ROOT / "data" / "kb.json"
+LEXICON_PATH = REPO_ROOT / "data" / "dialect_lexicon.json"
 AUDIO_DIR = REPO_ROOT / "data" / "synthetic_audio" / "train"
 ADAPTER_OUT = REPO_ROOT / "models" / "speech_adapter.pt"
 
 TEMPLATES = [
     "What can I do about {entity} in {crop}?",
-    "My {crop} crop has a problem with {entity_lower}.",
+    "My {crop} crop has a problem with {entity}.",
     "Please tell me how to manage {entity} affecting {crop}.",
     "I think my field has {entity}, what should I do?",
 ]
+DIALECT_TEMPLATES = [
+    "Mere {crop} me {term} lag gaya hai.",
+    "{term} ka kya ilaj hai?",
+    "Khet me {term} dikh raha hai, kya karu?",
+]
+# (voice, words-per-minute) pairs -- cheap acoustic augmentation.
+VOICES = [("en", 160), ("en-us", 140), ("en-gb-x-rp", 180)]
 
 
 def load_waveform_16k(path: Path) -> np.ndarray:
@@ -60,21 +83,33 @@ def load_waveform_16k(path: Path) -> np.ndarray:
     return wav.astype(np.float32)
 
 
-def build_training_examples(passages: list[dict]) -> list[dict]:
-    examples = []
-    rng = random.Random(42)
+def build_training_sentences(passages: list[dict], lexicon: list[dict], normalize_dialect: bool = True) -> list[dict]:
+    """Returns [{"passage_id", "text" (spoken), "target_text" (embedded)}]."""
+    mapper = DialectMapper(lexicon)
+    entity_to_pids: dict[str, list[str]] = {}
+    out = []
     for p in passages:
-        entity = p["entities"][0] if p.get("entities") else p["title"]
         crop = p.get("crop", "the field")
-        chosen_templates = rng.sample(TEMPLATES, k=min(3, len(TEMPLATES)))
-        for t_idx, template in enumerate(chosen_templates):
-            text = template.format(entity=entity, entity_lower=entity.lower(), crop=crop)
-            examples.append({"passage_id": p["id"], "text": text, "template_idx": t_idx})
-    return examples
+        for sent in re.split(r"(?<=[.!?])\s+", p["text"]):
+            if len(sent.split()) >= 4:
+                out.append({"passage_id": p["id"], "text": sent, "target_text": sent})
+        for i, ent in enumerate(p.get("entities") or [p["title"]]):
+            entity_to_pids.setdefault(ent.lower(), []).append(p["id"])
+            t = TEMPLATES[i % len(TEMPLATES)].format(entity=ent, crop=crop)
+            out.append({"passage_id": p["id"], "text": t, "target_text": t})
+    for e in lexicon:
+        for ent in e["maps_to"]:
+            for pid in entity_to_pids.get(ent.lower(), [])[:1]:
+                crop = next(p.get("crop", "") for p in passages if p["id"] == pid)
+                for template in DIALECT_TEMPLATES:
+                    t = template.format(term=e["term"], crop=crop)
+                    out.append({"passage_id": pid, "text": t, "target_text": mapper.map_query(t).normalized_query if normalize_dialect else t})
+    return out
 
 
-def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature: float = 0.07,
-         val_fraction: float = 0.15, seed: int = 42):
+def main(epochs: int = 150, batch_size: int = 64, lr: float = 1e-3, temperature: float = 0.07,
+         val_fraction: float = 0.15, seed: int = 42, normalize_dialect: bool = True,
+         out_path: Path = ADAPTER_OUT):
     t_start = time.time()
     random.seed(seed)
     torch.manual_seed(seed)
@@ -83,21 +118,30 @@ def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature:
         passages = json.load(f)
     passage_index = {p["id"]: i for i, p in enumerate(passages)}
 
-    print(f"[1/5] Building auto-generated (non-eval-set) training query templates for {len(passages)} passages...")
-    examples = build_training_examples(passages)
+    with open(LEXICON_PATH, encoding="utf-8") as f:
+        lexicon = json.load(f)["entries"]
+
+    print(f"[1/5] Building (non-eval-set) training sentences for {len(passages)} passages...")
+    sentences = build_training_sentences(passages, lexicon, normalize_dialect)
     rng = random.Random(seed)
-    rng.shuffle(examples)
-    n_val = max(1, int(len(examples) * val_fraction))
-    val_examples, train_examples = examples[:n_val], examples[n_val:]
+    rng.shuffle(sentences)
+    # Split by SENTENCE, before voice augmentation, so no val sentence is heard in training.
+    n_val = max(1, int(len(sentences) * val_fraction))
+    val_examples = [dict(s, voice=v, wpm=w) for s in sentences[:n_val] for v, w in VOICES[:1]]
+    train_examples = [dict(s, voice=v, wpm=w) for s in sentences[n_val:] for v, w in VOICES]
+    examples = train_examples + val_examples
     print(f"    {len(train_examples)} train examples, {len(val_examples)} val examples "
           f"(disjoint from data/eval_queries.jsonl, which this script never reads)")
 
-    print("[2/5] Synthesizing TTS audio for each training/val example with espeak-ng (English voice)...")
+    print(f"[2/5] Synthesizing TTS audio for {len(examples)} examples with espeak-ng ({len(VOICES)} voice/speed variants)...")
+    import hashlib
+
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    for i, ex in enumerate(examples):
-        wav_path = AUDIO_DIR / f"ex{i:04d}.wav"
+    for ex in examples:
+        key = hashlib.sha1(f"{ex['voice']}|{ex['wpm']}|{ex['text']}".encode()).hexdigest()[:16]
+        wav_path = AUDIO_DIR / f"{key}.wav"
         if not wav_path.exists():
-            synthesize(ex["text"], wav_path, voice="en")
+            synthesize(ex["text"], wav_path, voice=ex["voice"], speed_wpm=ex["wpm"])
         ex["wav_path"] = wav_path
 
     print("[3/5] Extracting frozen wav2vec2-base features + frozen text-retriever targets...")
@@ -109,14 +153,12 @@ def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature:
     target_embeddings = torch.tensor(dense.doc_embeddings, dtype=torch.float32)  # (n_passages, 384)
 
     def featurize(exs: list[dict]) -> tuple[torch.Tensor, torch.Tensor]:
-        feats = []
-        targets = []
-        for ex in exs:
-            wav = load_waveform_16k(ex["wav_path"])
-            feat = speech_encoder.encode(wav)  # (1, 768)
-            feats.append(feat.squeeze(0))
-            targets.append(target_embeddings[passage_index[ex["passage_id"]]])
-        return torch.stack(feats), torch.stack(targets)
+        feats = [speech_encoder.encode(load_waveform_16k(ex["wav_path"])).squeeze(0) for ex in exs]
+        # Distillation target: the text encoder's embedding of what was said
+        # (dialect-normalized for dialect sentences -- see module docstring).
+        targets = torch.tensor(dense.model.encode([ex["target_text"] for ex in exs], convert_to_numpy=True,
+                                                  normalize_embeddings=True, show_progress_bar=False))
+        return torch.stack(feats), targets
 
     train_feats, train_targets = featurize(train_examples)
     val_feats, val_targets = featurize(val_examples)
@@ -124,7 +166,7 @@ def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature:
 
     print(f"[4/5] Training adapter for {epochs} epochs with in-batch InfoNCE contrastive loss...")
     adapter = SpeechToRetrievalAdapter().to(device)
-    optimizer = torch.optim.Adam(adapter.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(adapter.parameters(), lr=lr, weight_decay=0.05)
     train_feats_d = train_feats.to(device)
     train_targets_d = F.normalize(train_targets, dim=-1).to(device)
     val_feats_d = val_feats.to(device)
@@ -158,7 +200,9 @@ def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature:
             text_emb = train_targets_d[idx]                     # (b, 384)
             logits = speech_emb @ text_emb.T / temperature       # (b, b)
             labels = torch.arange(idx.numel(), device=device)
-            loss = F.cross_entropy(logits, labels)
+            # InfoNCE alone treats same-sentence voice variants in a batch as
+            # negatives; the cosine term anchors each to its exact target.
+            loss = F.cross_entropy(logits, labels) + (1 - (speech_emb * text_emb).sum(-1)).mean()
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -175,18 +219,25 @@ def main(epochs: int = 100, batch_size: int = 16, lr: float = 1e-3, temperature:
             print(f"    epoch {epoch:3d}  train_loss={history[-1]:.4f}  val_top1_passage_acc={val_acc:.3f}")
 
     # Keep the best-on-validation checkpoint rather than whatever the last epoch
-    # happened to land on -- with only 18 held-out examples, per-epoch val
-    # accuracy is noisy (each example is worth ~5.6 percentage points).
+    # happened to land on -- the val set is small, so per-epoch accuracy is noisy.
     adapter.load_state_dict(best_state)
     adapter.eval()
-    ADAPTER_OUT.parent.mkdir(parents=True, exist_ok=True)
-    adapter.save(str(ADAPTER_OUT))
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    adapter.save(str(out_path))
     print(f"[5/5] Best checkpoint: epoch {best_epoch}, val_top1_passage_acc={best_val_acc:.3f} "
-          f"(chance level = 1/{len(passages)} = {1/len(passages):.3f}). Saved to {ADAPTER_OUT}")
+          f"(chance level = 1/{len(passages)} = {1/len(passages):.3f}). Saved to {out_path}")
     print(f"Total wall time: {time.time() - t_start:.1f}s")
     return {"history": history, "n_train": len(train_examples), "n_val": len(val_examples),
             "best_val_acc": best_val_acc, "best_epoch": best_epoch}
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--no-dialect-normalization", action="store_true",
+                    help="ablation: distill dialect sentences to their RAW text embedding")
+    ap.add_argument("--out", type=Path, default=ADAPTER_OUT)
+    a = ap.parse_args()
+    main(seed=a.seed, normalize_dialect=not a.no_dialect_normalization, out_path=a.out)

@@ -96,7 +96,7 @@ models and two different machines, which is reasonably strong evidence it's
 a `huggingface_hub` resumable-download issue rather than a one-off fluke of
 either specific file or host.
 
-### Train the speech-native adapter (one-time, ~20-30s on this GPU)
+### Train the speech-native adapter (one-time, ~1 min on this GPU)
 
 ```bash
 python -m src.speech_retrieval.train_adapter
@@ -110,6 +110,7 @@ it's cheap to regenerate and is a training artifact, not source.
 ```bash
 pytest tests/ -v                        # 24 tests, all passing (see below)
 python scripts/run_evaluation.py        # retrieval baselines vs. eval_queries.jsonl
+python scripts/speech_native_ablation.py  # speech adapter: 3 seeds x dialect-target ablation (~6 min)
 python scripts/benchmark_latency.py     # stage-by-stage latency on this machine
 python scripts/build_confidence_labels.py   # regenerates data/confidence_labels.jsonl (templated answers)
 python scripts/build_confidence_labels.py --llm  # same, but with real LLM-generated answers -> data/confidence_labels_llm.jsonl
@@ -233,6 +234,14 @@ not re-analysis of existing numbers, and both produced real, sometimes
 surprising results — see §3.5 and §4.5 below, and `main.tex` Sections VI-F
 and VI-H for how they're reported in the paper itself.
 
+**Third run (24 Oct 2026):** the speech-native adapter was retrained with a
+new recipe (§2), and the full evaluation was re-run. Every text-input cell
+reproduced exactly; the ASR-cascade `dialectal/common` cell flipped back to
+0.077 (overall 0.400). The espeak-ng `libsonic` issue reported in an external
+audit didn't reproduce: `src/tts_util.py` already points `LD_LIBRARY_PATH` at
+the bundled `tools/espeak-ng-dist/lib/` (which ships `libsonic.so`), and all
+24 tests, including both audio smoke tests, pass.
+
 ### 1. Retrieval baselines (`python scripts/run_evaluation.py`), 50 stratified eval queries
 
 Full output in `data/evaluation_results.json`. Headline recall@1 by baseline
@@ -244,8 +253,11 @@ and stratum:
 | 2. dense-only | 0.400 | 0.833 | 0.833 | 0.000 | 0.000 |
 | 3. hybrid, no dialect mapping | 0.460 | 0.917 | 1.000 | 0.000 | 0.000 |
 | 4. hybrid + dialect mapping | **0.780** | 0.917 | 1.000 | **0.615** | **0.615** |
-| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.380 | 0.583 | 1.000 | 0.000 | 0.000 |
-| 6. speech-native (trained adapter), no dialect mapping | 0.020 | 0.000 | 0.000 | 0.000 | 0.077 |
+| 5. ASR cascade (Whisper tiny) + hybrid + dialect mapping | 0.400 | 0.583 | 1.000 | 0.077 | 0.000 |
+| 6. speech-native adapter, embedding-space dialect mapping (shipped ckpt, seed 42) | 0.140 | 0.000 | 0.167 | 0.077 | 0.308 |
+| 6a. same, mean of 3 seeds | 0.127 | 0.083 | 0.139 | 0.077 | 0.205 |
+| 6b. ablation: raw dialect targets, mean of 3 seeds | 0.113 | 0.194 | 0.194 | 0.051 | 0.026 |
+| 6c. first-version adapter (template training) | 0.020 | 0.000 | 0.000 | 0.000 | 0.077 |
 
 **What this shows, honestly:**
 - **Dialect mapping is doing essentially all of the work on dialectal
@@ -255,8 +267,9 @@ and stratum:
   and also a sign that 42 KB passages with fairly distinct vocabulary is an
   easy regime for a lexicon-lookup layer; it would need re-testing at a
   larger, messier KB scale before trusting the same 0.615 number.
-- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.000
-  recall@1 on both dialectal strata, and worse than raw hybrid
+- **ASR cascade is genuinely, badly broken by dialectal queries** — 0.077 /
+  0.000 recall@1 on the dialectal strata (one dialectal/common query flips
+  between correct and wrong across runs, GPU non-determinism), and worse than raw hybrid
   retrieval even on standard-phrasing queries (0.583 vs. 0.917), because
   `faster-whisper` "tiny" mangles even the *English* TTS audio somewhat (see
   `data/asr_cascade_transcripts.json` for every transcript — e.g. query q001
@@ -267,49 +280,53 @@ and stratum:
   speech; this number should not be read as "Whisper is this bad in
   general," only that this specific tiny model + this specific synthetic
   audio pipeline is.
-- **Speech-native retrieval's recall@1 on the held-out eval set is 0.020
-  overall** (1/50, effectively chance), despite the adapter clearly learning
-  *something* (see below) — a real, and important, negative result: the toy
-  training signal does not generalize to the eval set's different phrasing
-  style. This is discussed in depth below, not glossed over.
+- **Speech-native retrieval is weak but no longer at chance** — 0.127
+  recall@1 (3-seed mean), up from 0.020 for the first-version adapter. On
+  dialectal queries it beats the ASR cascade (0.141 vs. 0.038) thanks to
+  embedding-space dialect mapping; on standard phrasing it trails badly
+  (0.111 vs. 0.792). See §2.
 
-### 2. Speech-native adapter training (`python -m src.speech_retrieval.train_adapter`)
+### 2. Speech-native adapter (`python -m src.speech_retrieval.train_adapter`, `python scripts/speech_native_ablation.py`)
 
-```
-[1/5] 108 train examples, 18 val examples (auto-generated templates, disjoint
-      from eval_queries.jsonl -- see train_adapter.py docstring)
-...
-[4/5] Training adapter for 100 epochs with in-batch InfoNCE contrastive loss...
-    epoch   1  train_loss=3.5050  val_top1_passage_acc=0.000
-    epoch  50  train_loss=0.2842  val_top1_passage_acc=0.333
-    epoch  90  train_loss=0.1699  val_top1_passage_acc=0.444
-    epoch 100  train_loss=0.0888  val_top1_passage_acc=0.500
-[5/5] Best checkpoint: epoch 99, val_top1_passage_acc=0.611 (chance level = 1/42 = 0.024)
-Total wall time: 20.1s
-```
+**First version (kept as row 6c for the record):** 108 short English template
+sentences (*"What can I do about {entity} in {crop}?"*), each aligned to its
+*passage's* embedding. 61.1% top-1 on an 18-example val split from the same
+templates, 0.020 recall@1 on the eval set: it memorized a phrasing
+distribution instead of learning to retrieve.
 
-**The honest read:** on its OWN held-out validation split (18 examples, drawn
-from the same small set of auto-generated English templates used for
-training, e.g. *"What can I do about {entity} in {crop}?"*), the trained
-adapter retrieves the correct passage top-1 **61.1% of the time — roughly 26x
-better than the 2.4% chance level for a 42-way retrieval problem.** (The
-original build's run landed at 55.6%/epoch 87 — same story, small
-run-to-run variance from GPU non-determinism given a fixed random seed.)
-That is a real, positive demonstration that the SpeechRAG/S2R-style mechanism
-(frozen speech encoder → small trained adapter → frozen text-retriever
-embedding space, no transcription) works end to end, reproducibly, across two
-different machines.
+**Current recipe** (`src/speech_retrieval/train_adapter.py`), none of which
+reads `eval_queries.jsonl`:
+- **Data:** every sentence of every KB passage + an English template per
+  entity alias + 3 romanized-Hindi templates per lexicon term, each
+  synthesized with 3 espeak-ng voice/speed variants (843 train clips). Val is
+  split *by sentence* before augmentation, so no val sentence is heard in
+  training.
+- **Target:** the frozen MiniLM embedding of the clip's *own* sentence
+  (SpeechRAG-style distillation), InfoNCE + cosine loss, AdamW wd=0.05, best
+  val checkpoint of 150 epochs.
+- **Encoder:** `facebook/wav2vec2-base-960h` (ASR-fine-tuned) hidden states,
+  mean-pooled. Only the hidden states are used — no CTC decoding, no
+  transcript — so the path is still speech-native.
+- **Embedding-space dialect mapping:** for dialect sentences the target is the
+  embedding of the `DialectMapper`-*normalized* sentence, so the adapter learns
+  to emit "what the text path would have produced after mapping" directly from
+  audio. The lexicon is only used at training time.
 
-But on `data/eval_queries.jsonl` — full natural-language symptom-description
-sentences and romanized Hindi/Bengali queries, a genuinely different phrasing
-distribution than the short template sentences it trained on — recall@1 drops
-to 0.020 overall (see table above). **This is a real generalization gap, not
-a bug**, and it's exactly the kind of result the paper predicts is
-unresolved: a small synthetic/template training signal does not obviously
-transfer to realistic out-of-distribution phrasing or (much more importantly)
-real dialect speech, which is the actual open problem the paper names and
-does not claim to have solved. Don't read the 61.1% number as "the adapter
-works" without also reading the ~2% eval number right next to it.
+`scripts/speech_native_ablation.py` (3 seeds x normalized vs. raw dialect
+targets → `data/speech_native_ablation.json`), recall@1 means:
+
+| | overall | standard | dialectal | recall@3 overall |
+|---|---:|---:|---:|---:|
+| normalized dialect targets (default) | 0.127 | 0.111 | 0.141 | 0.340 |
+| raw dialect targets (ablation) | 0.113 | 0.194 | 0.038 | 0.287 |
+
+Normalization wins on dialectal queries for every seed (0.19/0.12/0.12 vs.
+0.08/0.00/0.04) and costs some standard-phrasing accuracy. **The honest
+read:** a real but weak signal, far below text-input retrieval (0.780), seed
+variance is large at n=50, and the dialect templates share lexicon
+*vocabulary* (not sentences) with the eval set by design, same as text-mode
+mapping. Everything is synthetic English-voice TTS, so none of this is
+evidence about real dialect speech.
 
 ### 3. Confidence gate validation (`python -m src.confidence.validate_gate`)
 
@@ -519,13 +536,10 @@ no trained adapter is present).
 
 ## Known limitations / explicitly out of scope for this prototype
 
-- **Dialect mapping is text-only (post-ASR-style lookup)**, per "architecture
-  #1" in `agents/components/dialect-entity-mapping.md`. It is therefore not
-  applied in the `speech_native` pipeline mode at all (there's no text to look
-  it up in) — "architecture #2" (embedding-space dialect mapping with no ASR)
-  is named in that doc as the harder, more consistent-with-the-paper's-framing
-  alternative, and is not implemented here. `src/pipeline.py`'s docstring
-  flags this explicitly.
+- **Dialect mapping in `speech_native` mode is lexicon-derived, not
+  learned**: the lexicon is applied at adapter training time to build
+  normalized distillation targets (see §2), so it can only cover lexicon
+  terms the TTS voice can say, and has only been tested on synthetic audio.
 - **The dialect lexicon (29 entries) and KB (42 passages) are small,
   hand-curated demo artifacts**, not domain-expert-reviewed or sourced from a
   public KG/ontology as the paper's own bootstrapping constraint (contribution

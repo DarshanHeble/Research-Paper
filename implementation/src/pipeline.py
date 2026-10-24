@@ -13,14 +13,11 @@ implements (see src/retrieval, src/asr, src/speech_retrieval):
                         speech-native retrieval is compared against for RQ1).
   * "speech_native"  -- audio -> frozen wav2vec2 + trained adapter -> direct
                         embedding-space retrieval, no transcription step.
-                        NOTE: dialect mapping is NOT applied in this mode -- it
-                        is a text-lexicon lookup (src/dialect_mapping/mapper.py)
-                        and there is no text in this path. A production system
-                        wanting both speech-native retrieval AND dialect mapping
-                        would need "architecture #2" from
-                        agents/components/dialect-entity-mapping.md (embedding-
-                        space dialect mapping), which this prototype does not
-                        implement. This is a documented limitation, not a bug.
+                        Dialect mapping here is embedding-space, not a runtime
+                        lexicon lookup (there is no text to look up): the
+                        adapter was trained to emit the embedding of the
+                        lexicon-NORMALIZED sentence for dialect utterances
+                        (see src/speech_retrieval/train_adapter.py).
 
 Generation is real local-LLM generation (Qwen2.5-0.5B-Instruct via
 src/generation/llm_generator.py) when it can be loaded, and a deterministic
@@ -192,7 +189,7 @@ class AdvisoryPipeline:
         return self._finish(
             mode="speech_native",
             original_query="<audio query, speech-native retrieval -- no transcript produced>",
-            normalized_query=None,  # dialect mapping not applied in this mode -- see module docstring
+            normalized_query=None,  # mapping is baked into the adapter -- see module docstring
             matched_dialect_terms=[],
             retrieved=retrieved,
             query_for_generation="Please advise on the issue described in the farmer's spoken query.",

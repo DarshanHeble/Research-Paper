@@ -10,11 +10,10 @@ bridge the KB is indexed under.
 This module implements "architecture #1" from
 agents/components/dialect-entity-mapping.md (post-hoc text normalization) applied
 after ASR (whisper_cascade.py) or after any other text-producing step -- it is a
-lexicon lookup over text, not an embedding-space alignment. Architecture #2
-(embedding-space dialect mapping with no ASR at all) is out of scope for this
-demo; see speech_retrieval/ for the no-ASR path, which does not currently include
-dialect-term handling in embedding space -- a documented limitation, not a hidden
-gap. See the module docstring in speech_retrieval/speech_retriever.py.
+lexicon lookup over text, not an embedding-space alignment. The no-ASR
+speech-native path gets a lightweight architecture #2 instead: this mapper is
+applied at adapter TRAINING time to produce normalized distillation targets
+(see speech_retrieval/train_adapter.py), so no lookup is needed at inference.
 
 Bootstrapping note: per the paper's own scoping constraint (contribution 2), a
 production version of this lexicon must be built from public resources (EPPO
