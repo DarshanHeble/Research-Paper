@@ -49,6 +49,13 @@ class QueryRequest(BaseModel):
     text: str
 
 
+class LearnFeedbackRequest(BaseModel):
+    term: str
+    maps_to: list[str]
+    region_note: str = "Learned from expert feedback"
+    confidence: str = "high"
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -66,13 +73,12 @@ def query(req: QueryRequest) -> dict:
 
 
 @app.post("/query-audio")
-async def query_audio(audio: UploadFile = File(...)) -> dict:
-    """ASR-cascaded audio path (Section IV-C baseline #1 / pipeline mode
-    "asr_cascade"): Whisper transcription -> dialect mapping -> hybrid
-    retrieval. The speech-native mode (answer_audio_query_speech_native) is
-    not exposed here -- see Section VI-D: its adapter does not generalize
-    past its training distribution, and it requires a trained adapter
-    checkpoint the demo does not assume is present.
+async def query_audio(audio: UploadFile = File(...), mode: str = "asr_cascade") -> dict:
+    """Audio query endpoint supporting two execution paths:
+    
+    1. mode="asr_cascade" (default): Whisper transcription -> dialect mapping -> hybrid retrieval.
+    2. mode="speech_native": wav2vec2 encoder + projection adapter -> direct dense retrieval.
+       Note: speech_native requires a trained adapter checkpoint at models/speech_adapter.pt.
     """
     if pipeline is None:
         return {"error": "pipeline still loading, try again shortly"}
@@ -83,9 +89,33 @@ async def query_audio(audio: UploadFile = File(...)) -> dict:
         tmp_path = Path(tmp.name)
 
     try:
-        result = pipeline.answer_audio_query_asr_cascade(tmp_path)
+        if mode == "speech_native":
+            result = pipeline.answer_audio_query_speech_native(tmp_path)
+        else:
+            result = pipeline.answer_audio_query_asr_cascade(tmp_path)
         return asdict(result)
     except Exception as e:  # noqa: BLE001 -- demo endpoint: report to frontend, don't 500
         return {"error": f"{type(e).__name__}: {e}"}
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+@app.post("/feedback/learn-term")
+def learn_term(req: LearnFeedbackRequest) -> dict:
+    """Self-Learning Endpoint: Accepts validated expert mapping for a regional term
+    and updates the dynamic DialectMapper memory and persistent lexicon."""
+    if pipeline is None:
+        return {"error": "pipeline still loading"}
+    success = pipeline.mapper.learn_term(
+        term=req.term,
+        maps_to=req.maps_to,
+        region_note=req.region_note,
+        confidence=req.confidence,
+        persist=True,
+    )
+    return {
+        "status": "success" if success else "failed",
+        "term": req.term,
+        "maps_to": req.maps_to,
+        "total_lexicon_entries": len(pipeline.mapper.entries),
+    }

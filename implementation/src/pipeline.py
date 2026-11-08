@@ -122,7 +122,12 @@ class AdvisoryPipeline:
                 )
             from src.speech_retrieval.speech_retriever import SpeechNativeRetriever
 
-            self._speech_retriever = SpeechNativeRetriever(self.dense, self._adapter_path, device=self._device)
+            self._speech_retriever = SpeechNativeRetriever(
+                self.dense,
+                self._adapter_path,
+                lexicon_entries=self.mapper.entries,
+                device=self._device,
+            )
         return self._speech_retriever
 
     # ------------------------------------------------------------------ text --

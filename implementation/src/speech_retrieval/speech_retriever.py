@@ -20,7 +20,8 @@ from src.speech_retrieval.adapter import FrozenSpeechEncoder, SpeechToRetrievalA
 
 
 class SpeechNativeRetriever:
-    def __init__(self, dense_retriever: DenseRetriever, adapter_path: str | Path, device: str | None = None):
+    def __init__(self, dense_retriever: DenseRetriever, adapter_path: str | Path,
+                 lexicon_entries: list[dict] | None = None, device: str | None = None):
         self.dense = dense_retriever
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.speech_encoder = FrozenSpeechEncoder(device=self.device)
@@ -28,12 +29,46 @@ class SpeechNativeRetriever:
         state = torch.load(str(adapter_path), map_location=self.device)
         self.adapter.load_state_dict(state)
         self.adapter.eval()
+        
+        # Build embedding-space dialect anchors
+        self.anchor_embeddings: np.ndarray | None = None
+        self.anchor_entities: list[str] = []
+        if lexicon_entries:
+            self._init_dialect_anchors(lexicon_entries)
+
+    def _init_dialect_anchors(self, entries: list[dict]):
+        """Pre-compute normalized canonical entity embeddings for dialect mapping in vector space."""
+        anchors = []
+        entities = []
+        for e in entries:
+            for ent in e.get("maps_to", []):
+                if ent not in entities:
+                    entities.append(ent)
+        if entities:
+            self.anchor_entities = entities
+            self.anchor_embeddings = self.dense.model.encode(
+                entities, convert_to_numpy=True, normalize_embeddings=True, show_progress_bar=False
+            )
 
     @torch.no_grad()
-    def encode_audio(self, waveform_16k: np.ndarray) -> np.ndarray:
+    def encode_audio(self, waveform_16k: np.ndarray, blend_threshold: float = 0.55, blend_weight: float = 0.3) -> np.ndarray:
         pooled = self.speech_encoder.encode(waveform_16k).to(self.device)  # (1, 768)
         embedding = self.adapter(pooled)  # (1, 384), already L2-normalized
-        return embedding.squeeze(0).cpu().numpy()
+        emb_np = embedding.squeeze(0).cpu().numpy()
+
+        # Embedding-space dialect mapping (Architecture #2):
+        # If speech vector aligns closely with a canonical dialect entity anchor, blend it
+        if self.anchor_embeddings is not None and len(self.anchor_entities) > 0:
+            sims = np.dot(self.anchor_embeddings, emb_np)
+            best_idx = int(np.argmax(sims))
+            if sims[best_idx] >= blend_threshold:
+                anchor_vec = self.anchor_embeddings[best_idx]
+                blended = (1.0 - blend_weight) * emb_np + blend_weight * anchor_vec
+                norm = np.linalg.norm(blended)
+                if norm > 1e-6:
+                    emb_np = blended / norm
+
+        return emb_np
 
     def search(self, waveform_16k: np.ndarray, top_k: int = 5) -> list[RetrievedPassage]:
         embedding = self.encode_audio(waveform_16k)

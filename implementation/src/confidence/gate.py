@@ -73,7 +73,8 @@ class ConfidenceGate:
         if top2_score is None:
             return 1.0  # only one candidate at all -- treat as maximally confident on retrieval side
         raw_margin = max(0.0, top1_score - top2_score)
-        return raw_margin / (raw_margin + self.margin_saturation)
+        sat = max(1e-6, self.margin_saturation)
+        return raw_margin / (raw_margin + sat)
 
     def score_grounding(self, answer_text: str, passage_text: str) -> float:
         answer_words = _content_words(answer_text)

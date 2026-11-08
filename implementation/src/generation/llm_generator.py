@@ -86,7 +86,7 @@ class LocalLLMGenerator:
         prompt = PROMPT_TEMPLATE.format(passage_text=passage_text, query=query)
         messages = [{"role": "user", "content": prompt}]
         chat_text = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = self.tokenizer(chat_text, return_tensors="pt").to(self.device)
+        inputs = self.tokenizer(chat_text, return_tensors="pt", truncation=True, max_length=1536).to(self.device)
         with torch.no_grad():
             out = self.model.generate(
                 **inputs,

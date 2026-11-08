@@ -470,9 +470,16 @@
           <span id="record-status" style="font-weight: 500; color: var(--text-muted);">Click microphone to start recording</span>
           <audio id="audio-preview" controls style="display:none;"></audio>
         </div>
+        <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+          <label for="audio-pipeline-mode" style="font-size: 0.9rem; font-weight: 600; color: var(--text-dark);">Pipeline Mode:</label>
+          <select id="audio-pipeline-mode" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1.5px solid var(--border); font-family: inherit; font-size: 0.85rem;">
+            <option value="asr_cascade">ASR Cascade (Whisper + Dialect Mapping)</option>
+            <option value="speech_native">Speech-Native (wav2vec2 + Direct Vector Retrieval)</option>
+          </select>
+        </div>
         <div class="hint">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
-          Microphone stream is processed locally via Whisper ASR + Dialect Mapping.
+          Select ASR Cascade for full transcription, or Speech-Native for direct embedding search.
         </div>
       </div>
     </div>
@@ -616,14 +623,16 @@ $('submit').addEventListener('click', async () => {
     };
   } else if (currentMode === 'record') {
     if (!recordedBlob) return alert('Please record an audio query first.');
-    endpoint = '/query-audio';
+    const audioMode = $('audio-pipeline-mode')?.value || 'asr_cascade';
+    endpoint = `/query-audio?mode=${encodeURIComponent(audioMode)}`;
     const formData = new FormData();
     formData.append('audio', recordedBlob, 'recorded_query.webm');
     requestOptions = { method: 'POST', body: formData };
   } else if (currentMode === 'file') {
     const file = $('audio-file').files[0];
     if (!file) return alert('Please select an audio file to upload.');
-    endpoint = '/query-audio';
+    const audioMode = $('audio-pipeline-mode')?.value || 'asr_cascade';
+    endpoint = `/query-audio?mode=${encodeURIComponent(audioMode)}`;
     const formData = new FormData();
     formData.append('audio', file, file.name);
     requestOptions = { method: 'POST', body: formData };
@@ -661,6 +670,19 @@ $('submit').addEventListener('click', async () => {
         </div>
         
         <div class="answer-content ${isEscalated ? 'escalated' : ''}">${r.answer}</div>
+
+        ${isEscalated ? `
+        <div style="background: #fdfaf0; border: 1px solid #fed7aa; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+          <h4 style="margin: 0 0 0.5rem 0; color: #9a3412; font-size: 0.95rem;">🌱 Expert Feedback & Continuous Learning</h4>
+          <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #7c2d12;">Was this dialect or symptom term unrecognized? Teach the system the correct mapping so it learns for future farmers:</p>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input id="expert-term" type="text" placeholder="Colloquial term (e.g. jhulsa rog)" style="flex: 1; min-width: 160px; font-size: 0.9rem; padding: 0.5rem 0.75rem;" />
+            <input id="expert-entity" type="text" placeholder="Scientific entity (e.g. late blight)" style="flex: 1; min-width: 160px; font-size: 0.9rem; padding: 0.5rem 0.75rem;" />
+            <button id="expert-learn-btn" type="button" style="background: #ea580c; color: white; border: none; border-radius: 8px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; font-size: 0.9rem;">Teach System</button>
+          </div>
+          <span id="expert-learn-status" style="display: block; margin-top: 0.5rem; font-size: 0.8rem; font-weight: 500;"></span>
+        </div>
+        ` : ''}
         
         <div class="metadata-grid">
           ${metaItem('Original Query / Transcript', r.original_query ?? '—')}
@@ -675,6 +697,46 @@ $('submit').addEventListener('click', async () => {
     }
     
     resultEl.style.display = 'block';
+
+    const learnBtn = $('expert-learn-btn');
+    if (learnBtn) {
+      learnBtn.addEventListener('click', async () => {
+        const term = $('expert-term').value.trim();
+        const entity = $('expert-entity').value.trim();
+        const statusSpan = $('expert-learn-status');
+        if (!term || !entity) {
+          statusSpan.style.color = '#dc2626';
+          statusSpan.textContent = 'Please fill both the dialect term and scientific entity.';
+          return;
+        }
+        learnBtn.disabled = true;
+        statusSpan.style.color = '#5b7062';
+        statusSpan.textContent = 'Teaching pipeline memory...';
+        try {
+          const lRes = await fetch($('backend-url').value + '/feedback/learn-term', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ term: term, maps_to: [entity] })
+          });
+          const lData = await lRes.json();
+          if (lData.status === 'success') {
+            statusSpan.style.color = '#059669';
+            statusSpan.textContent = `✓ Learned! "${term}" mapped to "${entity}". Pipeline memory updated.`;
+            $('expert-term').value = '';
+            $('expert-entity').value = '';
+          } else {
+            statusSpan.style.color = '#dc2626';
+            statusSpan.textContent = 'Failed to record term mapping.';
+          }
+        } catch (err) {
+          statusSpan.style.color = '#dc2626';
+          statusSpan.textContent = 'Error connecting to feedback endpoint.';
+        } finally {
+          learnBtn.disabled = false;
+        }
+      });
+    }
+
     setTimeout(() => {
       resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);

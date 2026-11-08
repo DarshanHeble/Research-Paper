@@ -49,3 +49,25 @@ def test_no_match_returns_original_query_unchanged(mapper):
 def test_case_insensitive_matching(mapper):
     result = mapper.map_query("SAFED MAKKHI lag gayi")
     assert "whitefly" in result.candidate_entities
+
+
+def test_word_boundary_isolation_prevents_substring_false_positives(mapper):
+    # Lexicon has "tela" (jassid). Unrelated English or transliterated word
+    # containing "tela" (e.g. "nutella", "constellation") should NOT match.
+    result = mapper.map_query("I am eating nutella on bread")
+    assert "tela" not in result.matched_terms
+    assert "jassid" not in result.candidate_entities
+
+
+def test_learn_term_dynamically():
+    mapper = DialectMapper(lexicon_entries=[])
+    assert mapper.map_query("Mere paudhe me naya rog lag gaya").candidate_entities == []
+    
+    # Learn a new regional term on the fly without file persistence in test
+    success = mapper.learn_term(term="naya rog", maps_to=["new blight disease"], persist=False)
+    assert success
+    
+    # Now query should match and normalize
+    res = mapper.map_query("Mere paudhe me naya rog lag gaya")
+    assert res.matched_terms == ["naya rog"]
+    assert "new blight disease" in res.candidate_entities

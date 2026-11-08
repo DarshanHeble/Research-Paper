@@ -40,16 +40,69 @@ class MappingResult:
 
 
 class DialectMapper:
-    def __init__(self, lexicon_entries: list[dict]):
+    def __init__(self, lexicon_entries: list[dict], lexicon_path: Path | None = None):
         # Sort longest-term-first so multi-word terms are matched before their
         # single-word substrings (e.g. "hara tela" before "tela").
         self.entries = sorted(lexicon_entries, key=lambda e: len(e["term"]), reverse=True)
+        self.lexicon_path = lexicon_path
 
     @classmethod
     def from_lexicon_file(cls, path: str | Path) -> "DialectMapper":
-        with open(path, encoding="utf-8") as f:
+        p = Path(path)
+        with open(p, encoding="utf-8") as f:
             data = json.load(f)
-        return cls(data["entries"])
+        return cls(data["entries"], lexicon_path=p)
+
+    def learn_term(self, term: str, maps_to: list[str], region_note: str = "Learned from expert feedback", confidence: str = "high", persist: bool = True) -> bool:
+        """Dynamically add or update a colloquial-to-scientific mapping (Self-Learning)."""
+        term_clean = term.strip().lower()
+        if not term_clean or not maps_to:
+            return False
+
+        # Check if already present
+        existing = next((e for e in self.entries if e["term"].lower() == term_clean), None)
+        if existing:
+            # Merge candidate entities
+            for ent in maps_to:
+                if ent not in existing["maps_to"]:
+                    existing["maps_to"].append(ent)
+            existing["confidence"] = confidence
+        else:
+            new_entry = {
+                "term": term_clean,
+                "region_note": region_note,
+                "maps_to": maps_to,
+                "confidence": confidence,
+            }
+            self.entries.append(new_entry)
+            self.entries.sort(key=lambda e: len(e["term"]), reverse=True)
+
+        if persist and self.lexicon_path and self.lexicon_path.exists():
+            with open(self.lexicon_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Update data['entries']
+            entries_list = data.get("entries", [])
+            found = False
+            for e in entries_list:
+                if e["term"].lower() == term_clean:
+                    for ent in maps_to:
+                        if ent not in e["maps_to"]:
+                            e["maps_to"].append(ent)
+                    e["confidence"] = confidence
+                    found = True
+                    break
+            if not found:
+                entries_list.append({
+                    "term": term_clean,
+                    "region_note": region_note,
+                    "maps_to": maps_to,
+                    "confidence": confidence,
+                })
+            data["entries"] = entries_list
+            with open(self.lexicon_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+
+        return True
 
     def map_query(self, query: str) -> MappingResult:
         query_lower = query.lower()
@@ -60,7 +113,10 @@ class DialectMapper:
 
         for entry in self.entries:
             term = entry["term"].lower()
-            for m in re.finditer(re.escape(term), query_lower):
+            # Boundary-aware token matching (\b) so substrings inside unrelated words don't match,
+            # while still permitting multi-word expressions like "hara tela".
+            pattern = r"(?<!\w)" + re.escape(term) + r"(?!\w)"
+            for m in re.finditer(pattern, query_lower):
                 span = m.span()
                 if any(not (span[1] <= s or span[0] >= e) for s, e in consumed_spans):
                     continue  # already covered by a longer term match
