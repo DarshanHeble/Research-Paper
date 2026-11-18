@@ -12,16 +12,16 @@ Measured for real on the actual target hardware class —
 Laptop (6GB VRAM), and reproduced end to end on a second machine of the same
 GPU class in a later session. Retrieval, dialect mapping, and the confidence
 gate are all sub-10ms; the dominant cost is local LLM generation
-(Qwen2.5-0.5B-Instruct, fp16) at ~1.3s mean for a capped 120-token response.
+(Qwen2.5-0.5B-Instruct, fp16) at ~1.1s mean for a capped 120-token response.
 Peak VRAM with every model loaded simultaneously (dense retriever, Whisper
-tiny, wav2vec2+adapter, the LLM) is ~1.4-1.5GB across the two runs —
+tiny, wav2vec2+adapter, the LLM) is 1.54GB as reported in the paper (1.4-1.5GB across earlier runs) —
 comfortably inside the 6GB budget, on this demo-scale 42-passage KB, in the
 LLM's default fp16 configuration. **Quantization has now been benchmarked**
 (`implementation/scripts/benchmark_quantization.py`, INT8/INT4 via
 `bitsandbytes`) and produced a real, surprising negative result: both
 quantized modes reduce peak VRAM as expected (fp16 0.95GB -> INT8 0.61GB ->
 INT4 0.47GB, LLM stage alone) but substantially *increase* per-query latency
-on this GPU (INT8 ~5-6x slower, INT4 ~40-50% slower than fp16), contrary to
+on this GPU (INT8 ~5.3x slower, INT4 ~34-36% slower than fp16, across three runs), contrary to
 the throughput improvements `compactllm2026` reports for quantized inference
 on smartphone-class hardware. The likely cause is that `bitsandbytes`' INT8
 outlier-decomposition matmul has fixed overhead that doesn't amortize well

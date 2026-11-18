@@ -212,8 +212,9 @@ bit-for-bit (no GPU/audio path involved in that stage); the retrieval table
 reproduced exactly except the ASR-cascade condition's `dialectal/common` cell,
 which moved from 0.077 to 0.000 (one query's Whisper transcription flipped
 between runs) and its `overall` column from 0.400 to 0.380 accordingly — both
-already-updated in the table below and in `main.tex` Table I, with a footnote
-there explaining the change. Latency was re-measured twice more: one run
+updated at the time (superseded: the third run below flipped the cell back
+to 0.077 / 0.400, which is what the table and `main.tex` Table I now show, with
+an inline parenthetical there explaining the run-to-run flip). Latency was re-measured twice more: one run
 showed an anomalous LLM-generation mean of ~2.1s (p95 ~7.0s) apparently caused
 by transient system contention right after a heavy prior training/eval run on
 the same GPU; a second immediate re-run returned to the documented ~1.28s
@@ -439,26 +440,30 @@ trusting it operationally. Full sweep in
 ```
 --- One-time model load latency ---
 bm25_retriever                                              1.4 ms
-dense_retriever (incl. MiniLM-L6-v2 load + KB encode)    8611.1 ms
-faster_whisper_tiny                                        453.3 ms
-wav2vec2_base + trained_adapter                           2194.4 ms
-qwen2.5-0.5b-instruct                                      695.0 ms
+dense_retriever (incl. MiniLM-L6-v2 load + KB encode)   10037.9 ms
+faster_whisper_tiny                                        512.4 ms
+wav2vec2_base + trained_adapter                           1685.0 ms
+qwen2.5-0.5b-instruct                                     1833.9 ms
 
 --- Per-stage steady-state latency (text query path, n=20) ---
 dialect_mapping                            mean=   0.1ms  p95=   0.6ms
-hybrid_search (bm25+dense+fusion)          mean=   3.8ms  p95=   4.3ms
-confidence_gate.score                      mean=   0.0ms  p95=   0.1ms
-llm_generation (qwen2.5-0.5b, <=120 tok)   mean=1282.5ms  p95=1476.4ms
+hybrid_search (bm25+dense+fusion)          mean=   3.1ms  p95=   3.7ms
+confidence_gate.score                      mean=   0.0ms  p95=   0.0ms
+llm_generation (qwen2.5-0.5b, <=120 tok)   mean=1146.9ms  p95=1304.9ms
 
 --- asr_cascade audio path (n=20) ---
-whisper_tiny_transcription                 mean= 212.8ms  p95= 288.3ms
-asr_cascade_total                          mean= 218.5ms  p95= 293.3ms
+whisper_tiny_transcription                 mean= 180.5ms  p95= 215.3ms
+asr_cascade_total                          mean= 185.5ms  p95= 220.5ms
 
 --- speech_native audio path (n=20) ---
-speech_native_total (encode+retrieve)      mean=  41.2ms  p95= 153.2ms
+speech_native_total (encode+retrieve)      mean=  40.5ms  p95= 127.2ms
 
 Peak VRAM with every model loaded simultaneously so far in this process: 1.54 GB
 ```
+
+Re-measured 2026-11-18 with the retrained `wav2vec2-base-960h` adapter (the
+`wav2vec2_base` label is the script's stage name). Full output:
+`data/latency_benchmark_output.txt`.
 
 Peak VRAM (dense retriever, Whisper tiny, wav2vec2+adapter, Qwen2.5-0.5B
 fp16, all loaded, plus 20 queries of actual inference through every stage)
@@ -471,7 +476,7 @@ explained by that run not having pushed a generation batch through yet.)
 
 **Read on RQ3:** retrieval, dialect mapping, and the confidence gate are all
 sub-10ms and effectively free next to everything else. The dominant cost is
-LLM generation (~1.3s mean, capped at 120 new tokens, greedy decoding) — end
+LLM generation (~1.1s mean, capped at 120 new tokens, greedy decoding) — end
 to end this lands in roughly the same "sub-2-second" ballpark `dubey2025aahar`
 reports for a comparable offline agricultural LLM system, on comparable
 consumer hardware, which is at least consistent with (not proof of) RQ3's
@@ -492,17 +497,18 @@ stage only, `n=20` per mode:
 
 ```
 mode     load_s   mean_ms  median_ms   p95_ms  peak_vram_gb
-fp16        3.4    1176.3     1340.4   1343.7          0.95
-int8        4.2    6752.9     7033.0   8592.3          0.61
-int4        7.0    1755.0     1817.6   2401.5          0.47
+fp16        2.8    1147.7     1289.3   1324.9          0.95
+int8        3.9    6065.2     6801.8   6913.5          0.61
+int4        3.5    1547.1     1745.3   2061.8          0.47
 ```
 
 **The honest read — this is a genuine negative result, not a bug:**
 quantization reduces peak VRAM exactly as expected (fp16 0.95GB → INT8
 0.61GB → INT4 0.47GB), but BOTH quantized modes are substantially *slower*
-than fp16 on this GPU — INT8 by roughly 5–6x (reproduced across three
-independent runs: 6299ms, 6133ms, 6753ms mean, all in the same range), INT4
-by roughly 40–50%. This contradicts the naive expectation (and the
+than fp16 on this GPU — INT8 by roughly 5.3x and INT4 by 34–36%, across
+three independent runs of all three modes (2026-11-18; all three saved in
+`data/quantization_benchmark_runs.json`; run 1 shown above and in the paper).
+An earlier single run measured INT8 6753ms and INT4 1755ms mean, same pattern. This contradicts the naive expectation (and the
 `compactllm2026` throughput figures cited in the paper, measured on
 different hardware/model scale) that quantization is an unconditional
 latency win. The likely cause: `bitsandbytes`' INT8 path uses an
@@ -557,7 +563,7 @@ no trained adapter is present).
   operational dependency) is out of scope here.
 - **Cloud GPU vs. offline boundary**: per the paper's contribution 4 scoping,
   this prototype used network access only for (a) one-time model weight
-  downloads (MiniLM, Whisper tiny, wav2vec2-base, Qwen2.5-0.5B) and (b)
+  downloads (MiniLM, Whisper tiny, wav2vec2-base-960h, Qwen2.5-0.5B) and (b)
   adapter training reads pretrained wav2vec2 weights already cached locally —
   everything in `scripts/benchmark_latency.py` and `scripts/run_evaluation.py`
   runs with no network calls once those one-time downloads are cached.

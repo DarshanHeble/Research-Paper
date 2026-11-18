@@ -11,8 +11,9 @@ Baselines:
   5. asr_cascade        -- TTS-synthesized query audio -> faster-whisper transcription
                            -> hybrid+dialect retrieval on the transcript (RQ1 baseline).
   6. speech_native      -- TTS-synthesized query audio -> frozen wav2vec2 + trained
-                           adapter -> direct embedding-space retrieval, no ASR, no
-                           dialect mapping (documented limitation, see pipeline.py).
+                           adapter -> direct embedding-space retrieval, no ASR; dialect
+                           mapping is learned into the adapter via lexicon-normalized
+                           training targets (see pipeline.py).
 
 HONESTY NOTE: baselines 5 and 6 run on espeak-ng TTS audio of the eval queries
 (including the romanized Hindi/Bengali dialectal ones), not real recorded dialect

@@ -6,9 +6,9 @@ first, then follow the pointers below to the file relevant to the task at hand.
 ## What this project is
 
 An IEEE conference paper: **"Speech-Native Retrieval-Augmented Generation for
-Agricultural Advisory in Low-Resource Dialects"**, single-authored by Darshan
-Pundlik Heble (PG Scholar, Dept. of Computer Science, Christ (Deemed to be
-University), Bangalore).
+Agricultural Advisory in Low-Resource Dialects"**, by Darshan Pundlik Heble
+(PG Scholar), Newbegin M and Benita Jose Chalissery (Dept. of Computer Science,
+Christ (Deemed to be University), Bangalore).
 
 The paper is a **framework / protocol proposal**, not a paper reporting
 completed experiments. It argues that no existing system combines four things
@@ -32,7 +32,7 @@ exists, and that remains true and deliberate; do not fabricate numbers to
 fill that gap. What *does* now exist is a runnable software prototype of the
 architecture (`implementation/`, see below) that produces real measured
 numbers on small, honestly-labeled demo data, and **Section VI of `main.tex`
-itself now reports those numbers** — tables, a training curve, a gate
+itself now reports those numbers** — a retrieval table and chart, a gate
 calibration sweep, a latency benchmark, a confidence-gate re-validation
 against real (non-template-quoting) LLM answers, and an LLM quantization
 benchmark, explicitly framed as a demo-scale mechanism check distinct from
@@ -46,6 +46,8 @@ is meant to be read without conflating the two.
 paper/             Everything the paper itself needs to compile
   main.tex             IEEE conference paper source (compiles with IEEEtran)
   reference.bib        Bibliography (33 entries), with verification-status tags
+  ieee_2547119.tex     Shorter submission variant of main.tex; keep numbers/claims in sync
+  reference_ieee_2547119.bib  Its bibliography (same 33 keys, no notes)
   pdfs/                Local copies of every cited reference (PDF or .txt citation)
 implementation/    Runnable prototype of the proposed system (see its README.md)
 agents/            This documentation set

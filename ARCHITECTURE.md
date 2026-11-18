@@ -1,7 +1,7 @@
 # System Architecture — Demo Setup (Frontend + Backend)
 
-This document describes how the `implementation/` prototype (currently a
-CLI-only pipeline, see `implementation/README.md`) is set up to run as a
+This document describes how the `implementation/` prototype (see
+`implementation/README.md`) is set up to run as a
 live, demoable system: a **backend API** wrapping `AdvisoryPipeline`, and a
 **frontend** that talks to it. This is the plan/setup reference to walk a
 guide or reviewer through "how this actually runs," not a paper section —
@@ -57,12 +57,11 @@ flowchart LR
 
 ## 3. Backend
 
-**Framework:** FastAPI + `uvicorn` (not yet a dependency — needs adding to
-`implementation/requirements.txt`).
+**Framework:** FastAPI + `uvicorn` (listed in `implementation/requirements.txt`).
 
 **What it does:** loads one `AdvisoryPipeline` instance at process startup
 (the same class the CLI and `tests/test_pipeline_smoke.py` already exercise
-— see `implementation/src/pipeline.py:58`), keeps it resident in memory
+— see `implementation/src/pipeline.py:55`), keeps it resident in memory
 (avoids re-loading MiniLM/Whisper/wav2vec2/Qwen on every request, which is
 where the multi-second one-time load costs in
 `implementation/README.md`'s latency table come from), and exposes it over
@@ -76,7 +75,7 @@ HTTP.
 | `POST` | `/query-audio` | `multipart/form-data`, field `audio` (webm/wav/etc.) | Same `PipelineResult` JSON as `/query`, plus `original_query` holding the Whisper transcript. Runs `answer_audio_query_asr_cascade` (Section IV-C baseline #1 / pipeline mode `asr_cascade`): Whisper transcription → dialect mapping → hybrid retrieval → generation → gate. |
 | `GET` | `/health` | — | `{"status": "ok", "llm_loaded": true/false}` — useful to show the guide that generation is real LLM vs. template fallback |
 
-`PipelineResult` (`implementation/src/pipeline.py:42`) is already a
+`PipelineResult` (`implementation/src/pipeline.py:39`) is already a
 dataclass with exactly the fields a JSON response needs — the backend is
 mostly `dataclasses.asdict(pipeline.answer_text_query(query))` behind a
 route, not new logic.
@@ -134,7 +133,7 @@ sequenceDiagram
 | Frontend page (text input + voice recording) | **Built** — `frontend/index.html` (mode toggle, `MediaRecorder`-based mic capture) |
 | One-command startup (`./start.sh`) | **Built** — starts backend + frontend, waits for health check |
 | Audio upload support, ASR-cascade mode | **Built** — `POST /query-audio` wraps `answer_audio_query_asr_cascade`; frontend records mic audio (`audio/webm`) and posts it as multipart form data |
-| Audio upload support, speech-native mode | Pipeline method exists (`answer_audio_query_speech_native`) but not wired to an endpoint — Section VI-D shows this adapter does not generalize past its training distribution (0.020 recall@1 on held-out queries), so it is not exposed in the demo path |
+| Audio upload support, speech-native mode | Pipeline method exists (`answer_audio_query_speech_native`) but not wired to an endpoint — Section VI-D shows this adapter, even retrained, reaches only 0.127 recall@1 (3-seed mean) on held-out queries vs. 0.400 for the ASR cascade, so it is not exposed in the demo path |
 
 ## 7. Notes for the guide walkthrough
 

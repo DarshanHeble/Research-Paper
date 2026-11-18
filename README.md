@@ -1,6 +1,6 @@
 # Speech-Native Retrieval-Augmented Generation for Agricultural Advisory in Low-Resource Dialects
 
-Welcome to the repository for the IEEE conference paper: **"Speech-Native Retrieval-Augmented Generation for Agricultural Advisory in Low-Resource Dialects"**, authored by Darshan Pundlik Heble (PG Scholar, Dept. of Computer Science, Christ (Deemed to be University), Bangalore).
+Welcome to the repository for the IEEE conference paper: **"Speech-Native Retrieval-Augmented Generation for Agricultural Advisory in Low-Resource Dialects"**, authored by Darshan Pundlik Heble (PG Scholar), Newbegin M and Benita Jose Chalissery (Dept. of Computer Science, Christ (Deemed to be University), Bangalore).
 
 This repository contains both the source code for the paper itself and a fully runnable software prototype of the proposed architecture.
 
@@ -49,7 +49,7 @@ Open `http://localhost:5173` in your browser to interact with the system. You ca
 - **Experimental Data**: No experiments have been run yet on the target dialect. The system is a prototype that demonstrates the feasibility of the architecture. Section VI of the paper reports numbers on small demo data as a mechanism check.
 - **Adding Contributions**: Please read `AGENTS.md` before making any modifications. It outlines the ground rules for maintaining IEEE formatting and the integrity of the paper's claims.
 
-## Author
+## Authors
 
-**Darshan Pundlik Heble**  
-PG Scholar, Dept. of Computer Science, Christ (Deemed to be University), Bangalore.
+**Darshan Pundlik Heble** (PG Scholar), **Newbegin M**, **Benita Jose Chalissery**  
+Dept. of Computer Science, Christ (Deemed to be University), Bangalore.

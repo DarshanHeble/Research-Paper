@@ -17,7 +17,7 @@ corpora barely exist..."). This script does NOT claim to fix that. Instead it:
   2. Synthesizes each sentence with several espeak-ng English voices and speeds
      (src/tts_util.py) as cheap acoustic augmentation -- still synthetic TTS,
      not real recorded farmer speech in any dialect.
-  3. Extracts frozen wav2vec2-base features and trains the small adapter
+  3. Extracts frozen wav2vec2-base-960h features and trains the small adapter
      (adapter.py) to reproduce the frozen text retriever's embedding of the
      utterance's OWN text (speech->text-embedding distillation, as in
      SpeechRAG), with an in-batch InfoNCE + cosine loss.
@@ -144,7 +144,7 @@ def main(epochs: int = 150, batch_size: int = 64, lr: float = 1e-3, temperature:
             synthesize(ex["text"], wav_path, voice=ex["voice"], speed_wpm=ex["wpm"])
         ex["wav_path"] = wav_path
 
-    print("[3/5] Extracting frozen wav2vec2-base features + frozen text-retriever targets...")
+    print("[3/5] Extracting frozen wav2vec2-base-960h features + frozen text-retriever targets...")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     speech_encoder = FrozenSpeechEncoder(device=device)
     dense = DenseRetriever.from_kb_file(KB_PATH, device=device)

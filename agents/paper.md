@@ -5,8 +5,9 @@ Owner file for anything touching the paper's prose, structure, or LaTeX.
 ## Document class and packages
 
 `\documentclass[conference]{IEEEtran}` — standard IEEE conference two-column
-format. Packages in use: `cite`, `amsmath,amssymb,amsfonts`, `algorithmic`,
-`graphicx`, `textcomp`, `xcolor`, `booktabs`, `tabularx`, `url`. Bibliography
+format. Packages in use: `cite`, `amsmath,amssymb,amsfonts`,
+`graphicx`, `textcomp`, `xcolor`, `booktabs`, `tabularx`, `makecell`, `url`,
+`tikz`, `pgfplots`. Bibliography
 style is `IEEEtran` via `\bibliographystyle{IEEEtran}` / `\bibliography{reference}`.
 
 Do not remove `\raggedbottom` or change the class options without a reason —
@@ -16,11 +17,13 @@ they're the IEEE-conference defaults this template ships with.
 
 - Title: *Speech-Native Retrieval-Augmented Generation for Agricultural
   Advisory in Low-Resource Dialects*
-- Author: Darshan Pundlik Heble, PG Scholar, Dept. of Computer Science,
-  Christ (Deemed to be University), Bangalore, India.
-- Single-author, single-affiliation. The commented-out `\and` block is a
-  template leftover for a second author — leave commented unless a co-author
-  is actually added.
+- Authors: Darshan Pundlik Heble (PG Scholar), Newbegin M, Benita Jose
+  Chalissery; all Dept. of Computer Science, Christ (Deemed to be University),
+  Bangalore, India. Three `\IEEEauthorblockN` blocks joined by `\and`.
+- `paper/ieee_2547119.tex` is a shorter submission variant with the same
+  authors, RQs and numbers. Its sections are numbered differently (results are
+  in its Section IV-C) and its Table I sub-rows are labeled 6/6a/6b, while
+  main.tex uses 6/6a/6b/6c. Any number changed in one file must change in both.
 
 ## Research questions (RQ1–RQ4) — the spine of the paper
 
@@ -60,8 +63,8 @@ later in the paper should be traceable to one of these four.
 | III | Proposed Architecture | Drafted — see below. |
 | IV | Experimental Protocol / Methodology | Drafted — see below. |
 | V | Evaluation Plan / Expected Outcomes | Drafted — deliberately **not** a "Results" section with real numbers on the target dialect (that data doesn't exist). Framed as hypotheses tied to RQ1–4 plus the metrics/protocol that would test them. Still open — Section VI does not resolve these. |
-| VI | Prototype Implementation and Preliminary Measurements | **Done, with real numbers, including two follow-up experiments.** Reports actual measured results from `implementation/` (retrieval recall@1 table, adapter training curve, confidence-gate calibration/threshold table, latency benchmark, a confidence-gate re-validation against real LLM answers (VI-F), and an LLM quantization benchmark (VI-H)), explicitly scoped as a demo-scale mechanism check on synthetic-TTS audio, distinct from Section V's still-open hypotheses on real dialect data. See `agents/implementation.md` and `implementation/README.md` for the source of every number here — never edit a number in this section without re-deriving it from an actual run. |
-| VII | Conclusion | Drafted — summary, honest limitations (RQ1–4 still open on target dialect despite the Section VI prototype), future work updated to reference concrete prototype findings (adapter generalization gap, gate signal weakness, embedding-space dialect mapping, quantization). |
+| VI | Prototype Implementation and Preliminary Measurements | **Done, with real numbers, including two follow-up experiments.** Reports actual measured results from `implementation/` (retrieval recall@1 table and chart, confidence-gate calibration/threshold table, latency benchmark, a confidence-gate re-validation against real LLM answers (VI-F), and an LLM quantization benchmark (VI-H)), explicitly scoped as a demo-scale mechanism check on synthetic-TTS audio, distinct from Section V's still-open hypotheses on real dialect data. See `agents/implementation.md` and `implementation/README.md` for the source of every number here — never edit a number in this section without re-deriving it from an actual run. |
+| VII | Conclusion | Drafted — summary, honest limitations (RQ1–4 still open on target dialect despite the Section VI prototype), future work updated to reference concrete prototype findings (adapter generalization gap; gate open-book weakness, now reported as resolved by VI-F; embedding-space dialect mapping, now implemented; quantization). |
 
 ### Important structural correction made
 

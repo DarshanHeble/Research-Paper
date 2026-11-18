@@ -30,8 +30,9 @@ number from it anywhere else (including in the paper). The summary:
   template split but ~2% (chance) on the eval set; retraining with sentence
   distillation + embedding-space dialect mapping lifted that to 0.127
   (3-seed mean) -- a real but weak signal, still far below text input; and the confidence gate's
-  open-book signal turned out to carry almost no discriminative power in this
-  run because the templated answers quote their own retrieved passage
+  open-book signal turned out to carry almost no discriminative power in its
+  first validation run (resolved: re-validation against real LLM answers,
+  paper Section VI-F, shows the signal does vary and discriminate) because the templated answers quote their own retrieved passage
   verbatim (a concrete, discovered instance of the `intrygue2026` warning
   that confidence signals can look reasonable while being carried by only one
   input).
@@ -120,9 +121,10 @@ the speech embeddings and the dialect-mapped entities feed into.
    transcripts in `implementation/data/asr_cascade_transcripts.json`.
 3. ~~Fine-tune a speech-to-retrieval adapter~~ **Done, as a proof of
    mechanism** — `implementation/src/speech_retrieval/{adapter,train_adapter,
-   speech_retriever}.py`; trains for real in ~20s on synthetic TTS audio, but
-   does not generalize past its own training distribution (see status
-   section above) — the mechanism works, dialect generalization remains the
+   speech_retriever}.py`; trains for real in ~1 min on synthetic TTS audio and,
+   after retraining with sentence distillation + lexicon-normalized targets,
+   reaches 0.127 recall@1 (3-seed mean) on held-out queries, still far below
+   text input (see status section above) — the mechanism works, dialect generalization remains the
    paper's open question, unresolved by this prototype as expected.
 4. ~~Build the dialect-to-entity mapping layer~~ **Done, mechanism real,
    lexicon demo-scale** — `implementation/src/dialect_mapping/mapper.py`,
@@ -148,13 +150,13 @@ the speech embeddings and the dialect-mapped entities feed into.
 6. ~~Quantize and package the full pipeline~~ **Done for latency; quantization
    now benchmarked too, with a surprising negative result** —
    `implementation/scripts/benchmark_latency.py` measures real
-   stage-by-stage latency on an actual RTX 3050 6GB laptop (~1.4-1.5GB peak
+   stage-by-stage latency on an actual RTX 3050 6GB laptop (1.54GB peak
    VRAM, all models loaded, reproduced on two separate machines of this class)
    with the LLM (Qwen2.5-0.5B-Instruct) in fp16. `scripts/benchmark_quantization.py`
    (via `LocalLLMGenerator(quantization="int8"|"int4")`, `bitsandbytes`)
    measured INT8/INT4 loading of that same model on the same GPU: both
-   *increase* per-query latency substantially (INT8 ~5-6x slower, INT4
-   ~40-50% slower) despite reducing peak VRAM as expected — the
+   *increase* per-query latency substantially (INT8 ~5.3x slower, INT4
+   ~34-36% slower, three runs) despite reducing peak VRAM as expected — the
    `compactllm2026`-style throughput improvements do not hold for this
    small model on this consumer GPU class, contrary to the naive
    expectation. See `implementation/README.md` §4.5.

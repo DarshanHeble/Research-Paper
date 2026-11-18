@@ -1,8 +1,8 @@
 """HTTP backend for the demo frontend -- a thin FastAPI wrapper around
 AdvisoryPipeline (src/pipeline.py). Loads one pipeline instance at process
 startup (so the multi-second model-load costs documented in README.md's
-latency table happen once, not per request) and exposes it as /query and
-/health. Does not add any retrieval/mapping/generation/gate logic of its own
+latency table happen once, not per request) and exposes it as /query,
+/query-audio and /health. Does not add any retrieval/mapping/generation/gate logic of its own
 -- see ../ARCHITECTURE.md for how this fits into the full frontend+backend
 setup.
 
@@ -29,7 +29,10 @@ pipeline: AdvisoryPipeline | None = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global pipeline
-    pipeline = AdvisoryPipeline(use_llm=True, verbose=True)
+    # 0.4 = best threshold on the real-LLM-answer gate validation
+    # (data/gate_validation_results_llm.json, paper Section VI-F); the 0.5
+    # library default answers only 6% of queries with real LLM answers.
+    pipeline = AdvisoryPipeline(use_llm=True, confidence_threshold=0.4, verbose=True)
     yield
 
 
@@ -70,8 +73,8 @@ async def query_audio(audio: UploadFile = File(...)) -> dict:
     """ASR-cascaded audio path (Section IV-C baseline #1 / pipeline mode
     "asr_cascade"): Whisper transcription -> dialect mapping -> hybrid
     retrieval. The speech-native mode (answer_audio_query_speech_native) is
-    not exposed here -- see Section VI-D: its adapter does not generalize
-    past its training distribution, and it requires a trained adapter
+    not exposed here -- see Section VI-D: even retrained, its adapter reaches
+    only 0.127 recall@1 (3-seed mean) on held-out queries, and it requires a trained adapter
     checkpoint the demo does not assume is present.
     """
     if pipeline is None:

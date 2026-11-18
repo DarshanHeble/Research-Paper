@@ -54,7 +54,7 @@ class SpeechToRetrievalAdapter(nn.Module):
 
 
 class FrozenSpeechEncoder:
-    """Wraps facebook/wav2vec2-base to produce mean-pooled utterance features.
+    """Wraps facebook/wav2vec2-base-960h to produce mean-pooled utterance features.
 
     Kept separate from the adapter module (which stays a plain nn.Module you can
     train) since this encoder is always frozen/eval-mode and does audio I/O.

@@ -1,0 +1,25 @@
+--- One-time model load latency (paid once at process startup) ---
+bm25_retriever                                                1.4 ms
+dense_retriever (incl. MiniLM-L6-v2 load + KB encode)     10037.9 ms
+faster_whisper_tiny                                         512.4 ms
+wav2vec2_base + trained_adapter                            1685.0 ms
+qwen2.5-0.5b-instruct                                      1833.9 ms
+Benchmarking steady-state per-query latency over 20 sample eval queries (first call to each stage above already absorbed as 'load'; these are post-warmup numbers)...
+--- Per-stage steady-state latency (text query path) ---
+dialect_mapping                         n= 20  mean=    0.1ms  median=    0.1ms  p95=    0.6ms  min=    0.1ms  max=    0.6ms
+bm25_search (alone)                     n= 20  mean=    0.2ms  median=    0.2ms  p95=    0.5ms  min=    0.2ms  max=    0.5ms
+dense_search (alone, incl. query encode)  n= 20  mean=    3.0ms  median=    2.8ms  p95=    6.3ms  min=    2.7ms  max=    6.3ms
+hybrid_search (bm25+dense+fusion)       n= 20  mean=    3.1ms  median=    3.1ms  p95=    3.7ms  min=    2.9ms  max=    3.7ms
+confidence_gate.score                   n= 20  mean=    0.0ms  median=    0.0ms  p95=    0.0ms  min=    0.0ms  max=    0.0ms
+llm_generation (qwen2.5-0.5b, greedy, <=120 new tokens)  n= 20  mean= 1146.9ms  median= 1272.9ms  p95= 1304.9ms  min=  479.9ms  max= 1304.9ms
+--- Per-stage steady-state latency (asr_cascade audio path) ---
+whisper_tiny_transcription              n= 20  mean=  180.5ms  median=  176.4ms  p95=  215.3ms  min=  159.0ms  max=  215.3ms
+asr_cascade_total (transcribe+map+retrieve)  n= 20  mean=  185.5ms  median=  181.6ms  p95=  220.5ms  min=  163.9ms  max=  220.5ms
+--- Per-stage steady-state latency (speech_native audio path) ---
+speech_native_total (wav2vec2+adapter+retrieve)  n= 20  mean=   40.5ms  median=   36.1ms  p95=  127.2ms  min=   28.4ms  max=  127.2ms
+--- End-to-end pipeline latency per mode (steady-state, post model-load) ---
+text mode (dialect+retrieval+gen+gate)  n= 20  mean= 1150.1ms  median= 1276.1ms  p95= 1308.0ms  min=  482.9ms  max= 1308.0ms
+asr_cascade mode (transcribe+map+retrieve; excl. gen/gate, see above)  n= 20  mean=  185.5ms  median=  181.6ms  p95=  220.5ms  min=  163.9ms  max=  220.5ms
+speech_native mode (encode+retrieve; excl. gen/gate, see above)  n= 20  mean=   40.5ms  median=   36.1ms  p95=  127.2ms  min=   28.4ms  max=  127.2ms
+Peak VRAM with every model loaded simultaneously so far in this process: 1.54 GB
+All numbers above are real measurements on this machine (RTX 3050 Laptop, 6GB VRAM) for this demo-scale KB (42 passages) -- retrieval-stage latency in particular should NOT be extrapolated linearly to a production-scale KB (thousands+ passages) without re-measuring; BM25/dense search over 42 short passages is close to a best case.

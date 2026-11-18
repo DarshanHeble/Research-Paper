@@ -16,7 +16,7 @@ reference you add or edit:
 - `[ACCEPTED]` — accepted at an IEEE conference; Xplore record not yet live. Cite via arXiv now, swap in the Xplore DOI once it appears.
 - `[PREPRINT]` — arXiv only, no peer-reviewed venue confirmed.
 - `[WEB]` — blog post/announcement, not a citable paper in the academic sense (used sparingly, for systems like SukhaRakshak AI and Google S2R that are only documented via blog).
-- `[UNVERIFIED]` — found via a secondary source; bibliographic details not independently confirmed. Must be verified before final submission (currently only `kgeditorial2023`).
+- `[UNVERIFIED]` — found via a secondary source; bibliographic details not independently confirmed. Must be verified before final submission (currently none; `kgeditorial2023` was reclassified to `[VERIFIED]`).
 
 When adding a new reference: pick the correct tag honestly, don't default to
 `[VERIFIED]`. If unsure, use `[UNVERIFIED]` and leave a `note` field

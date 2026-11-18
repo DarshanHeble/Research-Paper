@@ -6,8 +6,8 @@ retrieval accuracy for queries phrased in regional or colloquial terms?
 ## Implementation status
 
 Implemented at `implementation/src/dialect_mapping/mapper.py` as the
-**post-ASR text-normalization path** described below (not the embedding-space
-alternative) — a 29-entry demo lexicon
+**post-ASR text-normalization path** described below (the embedding-space
+path is covered further down) — a 29-entry demo lexicon
 (`implementation/data/dialect_lexicon.json`), self-curated from generally
 well-known North/Central-Indian farmer terminology, not the domain-expert- or
 public-KG-sourced resource contribution 2 calls for in a real deployment.
