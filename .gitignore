@@ -8,3 +8,5 @@
 *.toc
 *.fls
 *.fdb_latexmk
+paper/.source_shingles.json
+paper/__pycache__/

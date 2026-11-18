@@ -20,10 +20,15 @@ they're the IEEE-conference defaults this template ships with.
 - Authors: Darshan Pundlik Heble (PG Scholar), Newbegin M, Benita Jose
   Chalissery; all Dept. of Computer Science, Christ (Deemed to be University),
   Bangalore, India. Three `\IEEEauthorblockN` blocks joined by `\and`.
-- `paper/ieee_2547119.tex` is a shorter submission variant with the same
-  authors, RQs and numbers. Its sections are numbered differently (results are
-  in its Section IV-C) and its Table I sub-rows are labeled 6/6a/6b, while
+- `paper/ieee_2547119.tex` is the 6-page submission version, rewritten in plain
+  first-person-plural prose. Sections: I Intro, II Related Work, III
+  Architecture, IV Experimental Setup (incl. implementation details and
+  equations), V Results and Discussion (incl. latency table and RQ-status
+  table), VI Conclusion. Its Table I sub-rows are labeled 6/6a/6b, while
   main.tex uses 6/6a/6b/6c. Any number changed in one file must change in both.
+- `paper/style_score.py` is a local proxy score for AI-style prose and 7-gram
+  overlap with `paper/pdfs/` (lower is better; it is NOT Turnitin/GPTZero). Run
+  `python3 style_score.py ieee_2547119.tex` from `paper/`.
 
 ## Research questions (RQ1–RQ4) — the spine of the paper
 
